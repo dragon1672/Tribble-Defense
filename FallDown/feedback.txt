@@ -1,0 +1,13 @@
+Nice chill music.
+Barricades looked very spacey, so it fit with the genre.
+The auditory illusion is nice.
+I did not find any glitches, although clipping looks funny. The clipping seems like it helps the overall gameplay. I imagine it would be a lot harder if the clipping wasn't as it is now.
+The instructions are short, blunt, and simple. However, it could use a nice graphic for the background.
+Mispelled escape on the main title screen.
+The credits are epic.
+It has good acceleration and starting speed.
+The spaceship looks cool.
+The flappy spaceship is cool, but had to be pointed out to me.
+
+Glitches:
+	When at the extreme edge, no clipping occurs for any of the floors.
