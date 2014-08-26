@@ -532,5 +532,10 @@ function initLoadingScreen() {
 
 //le game
 function initGameScene(container) {
-    //place game stuff here
+    GameStates.Game.update = function() {
+        
+    };
+    GameStates.Game.enable = function() {
+        backgroundMusic.setSoundFromString("GamePlay",true);
+    };
 }
