@@ -23,6 +23,8 @@ var FPS = 30;
         this.masterEnable  = function() { this.container.visible = true;  this.enable();  };
         this.masterDisable = function() { this.container.visible = false; this.disable(); };
         // should override the following
+        this.mouseDownEvent = function(prams) {}
+        this.mouseUpEvent = function(prams) {}
         this.enable  = function() { };
         this.disable = function() { };
         this.update  = function() {};
@@ -363,7 +365,14 @@ function initSprites() {
                 mouse.pos.x = Math.floor(evt.stageX);
                 mouse.pos.y = Math.floor(evt.stageY);
             });
+            stage.on("stagemousedown",function(e) {
+                CurrentGameState.mouseDownEvent(e);
+            });
+            stage.on("stagemouseup",function(e) {
+                CurrentGameState.mouseUpEvent(e);
+            });
         }
+        
         //universial across all scenes
         var keyStates = [];
         function handleKeyDown(evt) {
