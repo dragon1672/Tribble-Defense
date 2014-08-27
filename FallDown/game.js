@@ -358,6 +358,7 @@ function initSprites() {
     //region global assets (mouse and keys)
         var mouse = {
             pos: new Coord(),
+            isDown: false,
         };
         function mouseInit() {
             stage.enableMouseOver();
@@ -367,9 +368,11 @@ function initSprites() {
             });
             stage.on("stagemousedown",function(e) {
                 CurrentGameState.mouseDownEvent(e);
+                mouse.isDown = true;
             });
             stage.on("stagemouseup",function(e) {
                 CurrentGameState.mouseUpEvent(e);
+                mouse.isDown = false;
             });
         }
         
