@@ -16,7 +16,7 @@ Placeable = (function() {
     return false;
   };
 
-  Placeable.graphic = null;
+  this.graphic = null;
 
   return Placeable;
 
@@ -36,9 +36,9 @@ Element = (function(_super) {
     return Element.__super__.onPlace.call(this, false);
   };
 
-  Element.type = null;
+  this.type = null;
 
-  Element.level = null;
+  this.level = null;
 
   return Element;
 
@@ -50,7 +50,7 @@ Element = (function(_super) {
 Item = (function() {
   function Item() {}
 
-  Item.graphic = null;
+  this.graphic = null;
 
   Item.prototype.update = function() {};
 
@@ -64,11 +64,11 @@ Item = (function() {
 Square = (function() {
   function Square() {}
 
-  Square.graphic = null;
+  this.graphic = null;
 
-  Square.Item = null;
+  this.Item = null;
 
-  Square.isPlaceable = false;
+  this.isPlaceable = false;
 
   return Square;
 
@@ -80,13 +80,13 @@ Square = (function() {
 Hazard = (function() {
   function Hazard() {}
 
-  Hazard.coordPos = null;
+  this.coordPos = null;
 
-  Hazard.coordDir = null;
+  this.coordDir = null;
 
-  Hazard.force = null;
+  this.force = null;
 
-  Hazard.graphic = null;
+  this.graphic = null;
 
   return Hazard;
 
