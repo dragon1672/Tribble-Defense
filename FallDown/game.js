@@ -23,8 +23,8 @@ var FPS = 30;
         this.masterEnable  = function() { this.container.visible = true;  this.enable();  };
         this.masterDisable = function() { this.container.visible = false; this.disable(); };
         // should override the following
-        this.mouseDownEvent = function(prams) {}
-        this.mouseUpEvent = function(prams) {}
+        this.mouseDownEvent = function(e) { e=e; };
+        this.mouseUpEvent = function(e) { e=e; };
         this.enable  = function() { };
         this.disable = function() { };
         this.update  = function() {};
