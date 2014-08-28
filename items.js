@@ -1,9 +1,6 @@
-var Element, Hazard, Item, Lightning, Placeable, Square;
-  var _hasProp = {}.hasOwnProperty;
-  var _extends = function(child, parent) { for (var key in parent) { if (_hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
-
-//--------------------------------------------------------------------------
-
+var Element, Hazard, Item, Lightning, Placeable, Square,
+  __hasProp = {}.hasOwnProperty,
+  __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
 Placeable = (function() {
   function Placeable() {}
@@ -16,17 +13,23 @@ Placeable = (function() {
     return false;
   };
 
-  this.graphic = null;
+  Placeable.graphic = null;
 
   return Placeable;
 
 })();
 
-//--------------------------------------------------------------------------
+Item = (function() {
+  function Item() {}
 
+  Item.prototype.update = function() {};
+
+  return Item;
+
+})();
 
 Element = (function(_super) {
-  _extends(Element, _super);
+  __extends(Element, _super);
 
   function Element() {
     return Element.__super__.constructor.apply(this, arguments);
@@ -36,67 +39,42 @@ Element = (function(_super) {
     return Element.__super__.onPlace.call(this, false);
   };
 
-  this.type = null;
+  Element.type = null;
 
-  this.level = null;
+  Element.level = 1;
 
   return Element;
 
-})(Placeable);
-
-//--------------------------------------------------------------------------
-
-
-Item = (function() {
-  function Item() {}
-
-  this.graphic = null;
-
-  Item.prototype.update = function() {};
-
-  return Item;
-
-})();
-
-//--------------------------------------------------------------------------
-
+})(__extends(Placeable, Item));
 
 Square = (function() {
   function Square() {}
 
-  this.graphic = null;
+  Square.graphic = null;
 
-  this.Item = null;
+  Square.Item = null;
 
-  this.isPlaceable = false;
+  Square.isPlaceable = false;
 
   return Square;
 
 })();
 
-//--------------------------------------------------------------------------
-
-
 Hazard = (function() {
   function Hazard() {}
 
-  this.coordPos = null;
+  Hazard.coordPos = null;
 
-  this.coordDir = null;
+  Hazard.coordDir = null;
 
-  this.force = null;
-
-  this.graphic = null;
+  Hazard.graphic = null;
 
   return Hazard;
 
 })();
 
-//--------------------------------------------------------------------------
-
-
 Lightning = (function(_super) {
-  _extends(Lightning, _super);
+  __extends(Lightning, _super);
 
   function Lightning() {
     return Lightning.__super__.constructor.apply(this, arguments);
@@ -109,4 +87,3 @@ Lightning = (function(_super) {
   return Lightning;
 
 })(Placeable);
-
