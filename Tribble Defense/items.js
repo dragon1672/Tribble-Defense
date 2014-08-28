@@ -53,7 +53,9 @@ Element = (function(_super) {
 })(__extends(Placeable, Item));
 
 Square = (function() {
-  function Square() {}
+  function Square(type) {
+    this.graphic = allGraphic[type][1].clone();
+  }
 
   Square.graphic = null;
 

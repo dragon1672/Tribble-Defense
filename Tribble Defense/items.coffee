@@ -22,9 +22,11 @@ class Element extends Placeable extends Item
 
 
 class Square
- @graphic = null
- @Item = null
- @isPlaceable = false;
+  constructor: (type) ->
+   @graphic = allGraphic[type][1].clone()
+  @graphic = null
+  @Item = null
+  @isPlaceable = false;
 
 
 class Hazard
