@@ -76,8 +76,28 @@ function LevelExample (title) {
 
 
 var MessageTicker = {
-    addMessage: function(stringMsg) {},
-    messageQ: [],
+    addMessage: function(stringMsg) {
+        this._messageQ.push(stringMsg);
+    },
+    tick: function() {
+        var diff = this.messageStart.sub(this.messageEnd).normalized();
+        this._messageOffset = this._messageOffset.add(diff.mul(this.messageSpeed));
+        var pos = this.messageStart.add(this._messageOffset);
+        var overlap = this.pos.add(this._currentMessage.getBounds().width).sub(this.messageEnd);
+        if(overlap.x * diff.x < 0) { // time to change messages
+            var msg = "";
+            if(this._messageQ.length > 0) msg = this._messageQ.pop();
+            this._messageOffset = new Coord(); // reset position
+        }
+        this._currentMessage.x = pos.x;
+        this._currentMessage.y = pos.y;
+    },
+    //settings
+    messageSpeed: 2,
+    messageStart: new Coord(),
+    messageEnd: new Coord(100,0),
+    //private vars
+    _messageQ: [],
     _currentMessage: new createjs.Text("Message Ticker", "12px Arial", "#000"),
     _messageOffset: new Coord(),
 };
