@@ -1,27 +1,50 @@
-function Grid(size){
-    this.size = size;
+function Grid(cells, pos, dim){
+    this.dim = new Coord(dim.x,dim.y);
+    console.log("dim" + this.dim.x + ", " + this.dim.y);
+    this.position = new Coord(pos.x,pos.y);
+    console.log("pos" + this.position.x + ", " + this.position.y);
+    this.cells = new Coord(cells.y,cells.y);
+    console.log("cells" + this.cells.x + ", " + this.cells.y);
     this.squares = [];
-    for(var i=0; i<size; i++){
+    for(var i=0; i<cells.x; i++){
         this.squares[i] = [];
-        for(var j=0; j<size; j++){
-            this.squares[i][j] = new Square();
-            this.squares[i][j].graphic.x = i*(780/size);
-            this.squares[i][j].graphic.y = j*(540/size);
-            stage.addChild(this.squares[i][j]);
+        for(var j=0; j<cells.y; j++){
+            this.squares[i][j] = new Square(0);
+            this.squares[i][j].graphic.x = i*(dim.x/cells.x)+pos.x;
+            this.squares[i][j].graphic.y = j*(dim.y/cells.y)+pos.y;
+            this.squares[i][j].graphic.width = dim.x/cells.x;
+            this.squares[i][j].graphic.height = dim.y/cells.y;
+            this.squares[i][j].isPlaceable = true;
+            stage.addChild(this.squares[i][j].graphic);
         }
     }
     
-    this.highlight = function(xCoord,yCoord) {
+    this.highlight = function(x,y) {
         
     };
     
-    this.select = function(xCoord,yCoord){
-        if(this.squares[i][j].isPlaceable&&this.squares[xCoord][yCoord].Item.level===0){
-            this.squares[xCoord][yCoord].Item.level++;
+    this.select = function(x,y){
+        
+        var xCoord = Math.floor((x-this.position.x)/this.dim.x*10);
+        var yCoord = Math.floor((y-this.position.y)/this.dim.y*10);
+        console.log(xCoord + ", " + yCoord);
+        
+        if(this.squares[xCoord][yCoord].isPlaceable&&this.squares[xCoord][yCoord].Item===null){
+            this.squares[xCoord][yCoord].Item = new Element();
+            this.squares[xCoord][yCoord].Item.type = 0;
+            this.squares[xCoord][yCoord].Item.level = 1;
+            this.squares[xCoord][yCoord].Item.graphic = allGraphic[0][1].clone();
+            this.squares[xCoord][yCoord].Item.graphic.x = xCoord*(this.dim.x/this.cells.x)+this.pos.x;
+            this.squares[xCoord][yCoord].Item.graphic.y = yCoord*(this.dim.y/this.cells.y)+this.pos.y;
+            this.squares[xCoord][yCoord].Item.graphic.width = this.dim.x/this.cells.x;
+            this.squares[xCoord][yCoord].Item.graphic.height = this.dim.y/this.cells.y;
+            stage.addChild(this.squares[xCoord][yCoord].Item.graphic);
+            console.log("added?");
+            
         }
         else{return false;}
         while(this.compare(xCoord,yCoord,1,0,this.squares[xCoord][yCoord].Item.level)){
-            this.squares[xCoord][yCoord].Item.level++;
+            this.squares[xCoord][yCoord].Item.upgrade();
         }
         
         return true;
@@ -33,11 +56,24 @@ function Grid(size){
         if(y>0&&direction!=3&&this.squares[x][y].Item.level==this.squares[x][y-1].Item.level){
             
             if(depth==2||match!==0){
-                this.squares[x][y-1].Item.level=0;
-                if(match===0){this.squares[x][y].Item.level=0;}
-                else if(match==2){this.squares[x+1][y].Item.level=0;}
-                else if(match==3){this.squares[x][y+1].Item.level=0;}
-                else if(match==4){this.squares[x-1][y].Item.level=0;}
+                stage.removeChild(this.squares[x][y-1].Item.graphic);
+                this.squares[x][y-1].Item=null;
+                if(match===0){
+                    stage.removeChild(this.squares[x][y].Item.graphic);
+                    this.squares[x][y].Item=null;
+                }
+                else if(match==2){
+                    stage.removeChild(this.squares[x+1][y].Item.graphic);
+                    this.squares[x+1][y].Item=null;
+                }
+                else if(match==3){
+                    stage.removeChild(this.squares[x][y+1].Item.graphic);
+                    this.squares[x][y+1].Item=null;
+                }
+                else if(match==4){
+                    stage.removeChild(this.squares[x-1][y].Item.graphic);
+                    this.squares[x-1][y].Item=null;
+                }
                 return true;
             }
             match = 1;
@@ -48,11 +84,24 @@ function Grid(size){
         if(x<this.size&&direction!=4&&this.squares[x][y].Item.level==this.squares[x+1][y].Item.level){
             
             if(depth==2||match!==0){
-                this.squares[x+1][y].Item.level=0;
-                if(match===0){this.squares[x][y].Item.level=0;}
-                else if(match==1){this.squares[x][y-1].Item.level=0;}
-                else if(match==3){this.squares[x][y+1].Item.level=0;}
-                else if(match==4){this.squares[x-1][y].Item.level=0;}
+                stage.removeChild(this.squares[x+1][y].Item.graphic);
+                this.squares[x+1][y].Item=null;
+                if(match===0){
+                    stage.removeChild(this.squares[x][y].Item.graphic);
+                    this.squares[x][y].Item=null;
+                }
+                else if(match==1){
+                    stage.removeChild(this.squares[x][y-1].Item.graphic);
+                    this.squares[x][y-1].Item=null;
+                }
+                else if(match==3){
+                    stage.removeChild(this.squares[x][y+1].Item.graphic);
+                    this.squares[x][y+1].Item=null;
+                }
+                else if(match==4){
+                    stage.removeChild(this.squares[x-1][y].Item.graphic);
+                    this.squares[x-1][y].Item=null;
+                }
                 return true;
             }
             match = 2;
@@ -63,11 +112,24 @@ function Grid(size){
         if(y<this.size&&direction!=1&&this.squares[x][y].Item.level==this.squares[x][y+1].Item.level){
             
             if(depth==2||match!==0){
-                this.squares[x][y+1].Item.level=0;
-                if(match===0){this.squares[x][y].Item.level=0;}
-                else if(match==1){this.squares[x][y-1].Item.level=0;}
-                else if(match==2){this.squares[x+1][y].Item.level=0;}
-                else if(match==4){this.squares[x-1][y].Item.level=0;}
+                stage.removeChild(this.squares[x][y+1].Item.graphic);
+                this.squares[x][y+1].Item=null;
+                if(match===0){
+                    stage.removeChild(this.squares[x][y].Item.graphic);
+                    this.squares[x][y].Item=null;
+                }
+                else if(match==1){
+                    stage.removeChild(this.squares[x][y-1].Item.graphic);
+                    this.squares[x][y-1].Item=null;
+                }
+                else if(match==2){
+                    stage.removeChild(this.squares[x+1][y].Item.graphic);
+                    this.squares[x+1][y].Item=null;
+                }
+                else if(match==4){
+                    stage.removeChild(this.squares[x-1][y].Item.graphic);
+                    this.squares[x-1][y].Item=null;
+                }
                 return true;
             }
             match = 3;
@@ -78,11 +140,24 @@ function Grid(size){
         if(x>0&&direction!=2&&this.squares[x][y].Item.level==this.squares[x-1][y].Item.level){
             
             if(depth==2||match!==0){
-                this.squares[x-1][y].Item.level=0;
-                if(match===0){this.squares[x][y].Item.level=0;}
-                else if(match==1){this.squares[x][y-1].Item.level=0;}
-                else if(match==2){this.squares[x+1][y].Item.level=0;}
-                else if(match==3){this.squares[x][y+1].Item.level=0;}
+                stage.removeChild(this.squares[x-1][y].Item.graphic);
+                this.squares[x-1][y].Item=null;
+                if(match===0){
+                    stage.removeChild(this.squares[x][y].Item.graphic);
+                    this.squares[x][y].Item=null;
+                }
+                else if(match==1){
+                    stage.removeChild(this.squares[x][y-1].Item.graphic);
+                    this.squares[x-1][y].Item=null;
+                }
+                else if(match==2){
+                    stage.removeChild(this.squares[x+1][y].Item.graphic);
+                    this.squares[x+1][y].Item=null;
+                }
+                else if(match==3){
+                    stage.removeChild(this.squares[x][y+1].Item.graphic);
+                    this.squares[x][y+1].Item=null;
+                }
                 return true;
             }
             match = 4;

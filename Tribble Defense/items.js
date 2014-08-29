@@ -44,7 +44,7 @@ Element = (function(_super) {
     this.graphic = allGraphic[this.type][this.level].clone();
   };
 
-  Element.type = null;
+  Element.type = 0;
 
   Element.level = 1;
 
@@ -54,14 +54,14 @@ Element = (function(_super) {
 
 Square = (function() {
   function Square(type) {
-    this.graphic = allGraphic[type][1].clone();
+    this.graphic = terrainSprite[0].clone();
   }
 
   Square.graphic = null;
 
   Square.Item = null;
 
-  Square.isPlaceable = false;
+  Square.isPlaceable = true;
 
   return Square;
 
@@ -110,5 +110,3 @@ var hazardType = {
   lava: 3,
   tornado: 4
 };
-
-var allGraphic = [[1,2],[3,4],[5,6]];
