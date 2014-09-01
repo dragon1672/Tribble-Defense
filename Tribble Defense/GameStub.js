@@ -377,7 +377,9 @@ Game.prototype.ApplyMove     = function(pos,itemToPlace, preloadedQuery) {
         this.avalableItemPool.push(itemToPlace.duplicate());
     } else {
         if(itemToPlace === ItemType.BlackHole) {
+            preloadedQuery.alreadyOccupied = thisCell.item !== null;
             thisCell.item = null;
+            preloadedQuery = new Query(true);
         }
     }
 
