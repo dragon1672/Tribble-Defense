@@ -747,7 +747,14 @@ Game.prototype.MoveHelper = function(visistedPool,current, item) {
     return ret;
 };
 
+//pass
+//ApplyMove(Query)
+//ApplyMove(pos, optionalItem)
 Game.prototype.ApplyMove     = function(pos,itemToPlace, preloadedQuery) {
+    if(pos instanceof(Query)) {
+        preloadedQuery = pos;
+        pos = preloadedQuery.cells[0].pos;
+    }
     var thisCell = this.getCell(pos);
     if(thisCell === null) { throw new Error("Must apply move to valid cell"); }
     if(thisCell.item !== null) { console.log("warning placing ontop of existing cell"); }
