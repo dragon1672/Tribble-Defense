@@ -315,12 +315,8 @@ Game.prototype.QueryMove     = function(pos,itemToPlace) {
         ret.levelBoost++;
         sameType.map(pushToRet);
     }
-    var temp = new HashSet();
-    temp.addAll(ret.positions);
-    ret.positions = temp.toList();
-    temp = new HashSet();
-    temp.addAll(ret.cells);
-    ret.cells = temp.toList();
+    var temp = new HashSet();   temp.addAll(ret.positions); temp.remove(pos);       ret.positions = temp.toList();
+    temp = new HashSet();       temp.addAll(ret.cells);     temp.remove(thisCell);  ret.cells = temp.toList();
     ret.valid = ret.positions.length > 2;
     return ret;
 };
