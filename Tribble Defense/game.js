@@ -1106,6 +1106,7 @@ function Query(valid) {
     this.positions = [];
     this.cells = [];
     this.valid = valid;
+    this.alreadyOccupied = false;
 }
 
 function Item(type) {
@@ -1115,10 +1116,10 @@ function Item(type) {
     this.strength = 0;
     this.type = type;
     this.getLevel = function() {
-        return Math.floor(this.population / 3 + 1);
+        return Math.floor((Math.log(this.population) / Math.log(3)) + 1);
     };
     this.setToLevel = function(level) {
-        this.population = level * 3 - 1;
+        this.population = 3^(level-1);
     };
     this.duplicate = function() {
         var ret = new Item(this.type);
@@ -1210,6 +1211,7 @@ Game.prototype.QueryMove     = function(pos,itemToPlace) {
     itemToPlace = itemToPlace || this.itemQ(0);
     var thisCell = this.getCell(pos);
     var ret = new Query(thisCell !== null);
+    ret.alreadyOccupied = thisCell.item !== null;
     function pushToRet(cellToAdd) {
         ret.cells.push(cellToAdd);
         ret.positions.push(cellToAdd.pos);
@@ -1245,7 +1247,14 @@ Game.prototype.MoveHelper = function(visistedPool,current, item) {
     return ret;
 };
 
+//pass
+//ApplyMove(Query)
+//ApplyMove(pos, optionalItem)
 Game.prototype.ApplyMove     = function(pos,itemToPlace, preloadedQuery) {
+    if(pos instanceof(Query)) {
+        preloadedQuery = pos;
+        pos = preloadedQuery.cells[0].pos;
+    }
     var thisCell = this.getCell(pos);
     if(thisCell === null) { throw new Error("Must apply move to valid cell"); }
     if(thisCell.item !== null) { console.log("warning placing ontop of existing cell"); }
@@ -1443,8 +1452,8 @@ function initGameScene(container) {
             var upcomingLevel = game.itemQ(0).getLevel();
             if(upcomingLevel>5){upcomingLevel=5;}
             var queryInfo = game.QueryMove(flooredIndex,game.itemQ(0));
-            if(!queryInfo.alreadyOccupied){
-                var placeInfo = game.ApplyMove(flooredIndex,game.itemQ(0),queryInfo);
+            if(queryInfo.cells[0]!==null){
+                var placeInfo = game.ApplyMove(flooredIndex);
                 grid.place(container,flooredIndex,upcomingLevel);
                 if(placeInfo.valid){
                     for(var i=0; i<placeInfo.positions.length; i++)
