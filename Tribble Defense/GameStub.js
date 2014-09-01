@@ -608,6 +608,7 @@ function Query(valid) {
     this.positions = [];
     this.cells = [];
     this.valid = valid;
+    this.alreadyOccupied = false;
 }
 
 function Item(type) {
@@ -712,6 +713,7 @@ Game.prototype.QueryMove     = function(pos,itemToPlace) {
     itemToPlace = itemToPlace || this.itemQ(0);
     var thisCell = this.getCell(pos);
     var ret = new Query(thisCell !== null);
+    ret.alreadyOccupied = thisCell.item !== null;
     function pushToRet(cellToAdd) {
         ret.cells.push(cellToAdd);
         ret.positions.push(cellToAdd.pos);
