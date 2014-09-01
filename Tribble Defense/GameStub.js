@@ -54,10 +54,15 @@ function Game(size) { // pass in Coord of size
         ret.population = 1;
         return ret;
     };
+    this.popFromQ = function() {
+        var ret = new Item(ItemType.Housing);
+        ret.population = 1;
+        return ret;
+    };
     this.QueryMove     = function(pos,itemToPlace) {
         pos = pos;
         itemToPlace = itemToPlace;
-        var ret = new Query(true);
+        return new Query(true);
     };
     this.ApplyMove     = function(pos,itemToPlace) { 
         pos = pos;
