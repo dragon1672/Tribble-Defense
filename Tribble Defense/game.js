@@ -73,6 +73,7 @@ var FPS = 30;
         this.y = y || 0;
     }
     Coord.prototype.toString = function() { return "{"+this.x+","+this.y+"}"; };
+    Coord.prototype.isEqual  = function(that) { return this.x === that.x && this.y === that.y; };
     //math
     Coord.prototype.add = function(that)     { return new Coord(this.x+that.x,this.y+that.y); };
     Coord.prototype.sub = function(that)     { return new Coord(this.x-that.x,this.y-that.y); };
