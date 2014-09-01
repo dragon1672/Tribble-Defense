@@ -161,6 +161,13 @@ var HashSet = (function() {
 	HashSet.prototype.foreachInSet = function (theirFunction) {
 		return this.myTable.foreachInSet(function(key,val) { theirFunction(key); });
 	};
+    HashSet.prototype.toList = function () {
+        var ret = [];
+		this.foreachInSet(function (item) {
+            ret.push(item);
+		});
+        return ret;
+	};
     return HashSet;
 })();
 
@@ -199,7 +206,7 @@ function Item(type) {
         return Math.floor((Math.log(this.population) / Math.log(3)) + 1);
     };
     this.setToLevel = function(level) {
-        this.population = Math.pow(3,(level));
+        this.population = Math.pow(3,(level-1));
     };
     this.duplicate = function() {
         var ret = new Item(this.type);
@@ -304,6 +311,12 @@ Game.prototype.QueryMove     = function(pos,itemToPlace) {
         ret.levelBoost++;
         sameType.map(pushToRet);
     }
+    var temp = new HashSet();
+    temp.addAll(ret.positions);
+    ret.positions = temp.toList();
+    temp = new HashSet();
+    temp.addAll(ret.cells);
+    ret.cells = temp.toList();
     ret.valid = ret.positions.length > 2;
     return ret;
 };
