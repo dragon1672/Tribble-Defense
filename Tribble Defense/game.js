@@ -178,27 +178,25 @@ var FPS = 30;
 //region loading files
 var manifest = [
     {src:"audio/Loading.mp3", id:"Loading"},
-    {src:"images/title.png", id:"title"},
+    {src:"images/Static/Title.png", id:"title"},
     {src:"images/Terrain/BackgroundBase.png", id:"background"},
     {src:"images/Terrain/pathOpen.png", id:"path"},
     {src:"audio/GameOver.mp3", id:"Failure"},
-    {src:"images/Population/pop1.png", id:"pop1"},
-    {src:"images/instructions.png", id:"instructions"},
-    {src:"images/credits.png", id:"credits"},
+    {src:"images/Static/Instructions.png", id:"instructions"},
+    {src:"images/Static/Credits.png", id:"credits"},
     {src:"audio/GamePlay.mp3", id:"GamePlay"},
-    {src:"images/gameover.png", id:"gameover"},
+    {src:"images/Static/GameOverPurplePlanet.png", id:"gameover"},
     {src:"images/buttons.png", id:"button"},
     {src:"images/SpeakerOn.png", id:"SpeakerOn"},
     {src:"audio/StartScreen.mp3", id:"StartScreen"},
     {src:"images/SpeakerOff.png", id:"SpeakerOff"},
     {src:"images/Barrier.png", id:"Barrier"},
     {src:"images/sprites.png", id:"mySprites"},
-    {src:"images/Population/pop1.png", id:"pop1"},
-    {src:"images/Population/pop2.png", id:"pop2"},
-    {src:"images/Population/pop3.png", id:"pop3"},
-    {src:"images/Population/pop4.png", id:"pop4"},
-    {src:"images/Population/pop5.png", id:"pop5"},
-    {src:"images/Population/pop6.png", id:"pop6"},
+    {src:"images/Population/purplePop1.png", id:"pop1"},
+    {src:"images/Population/purplePop2.png", id:"pop2"},
+    {src:"images/Population/purplePop3.png", id:"pop3"},
+    {src:"images/Population/purplePop4.png", id:"pop4"},
+    {src:"images/Population/purplePop5.png", id:"pop5"},
 ];
 
 var queue;
@@ -1292,7 +1290,7 @@ var allGraphic = [];
 
 function Square(pos,dim){
     
-    this.graphic = loadImage("path");
+    this.graphic = terrainSprite.clone();
     this.graphic.x = pos.x;
     this.graphic.y = pos.y;
     this.graphic.scaleX = dim.x/64;
@@ -1308,8 +1306,8 @@ function Square(pos,dim){
     this.fill = function(pos,dim){
         this.item.x = pos.x;
         this.item.y = pos.y;
-        this.item.scaleX = dim.x/64;
-        this.item.scaleY = dim.y/64;
+        this.item.scaleX = dim.x/128;
+        this.item.scaleY = dim.y/128;
     };
 }
 
@@ -1342,11 +1340,26 @@ function Grid(container, cells, pos, dim){
     };
     
 }
+
+function calculateLevel(pop){
+    return Math.floor(pop/3+1);   
+}
+
+function updateQueue(ind){
+    var mod=1;
+    if(ind===0){mod=2;}
+    elementQueue[ind] = allGraphic[calculateLevel(game.itemQ(ind).population)].clone();
+    elementQueue[ind].x = 650-25*mod;
+    elementQueue[ind].y = 550-(50)*(3-ind)-50*mod;
+    elementQueue[ind].scaleX = 50*mod/128;
+    elementQueue[ind].scaleY = 50*mod/128;
+}
 //endregion
 
 //region GAME
 var game;
 var grid;
+var elementQueue = [];
 
 function initGameScene(container) {
     GameStates.Game.update = function() {
@@ -1355,29 +1368,42 @@ function initGameScene(container) {
     GameStates.Game.enable = function() {
         backgroundMusic.setSoundFromString("GamePlay",true);
         
+        terrainSprite = loadImage("path");
         allGraphic[1] = loadImage("pop1");
         allGraphic[2] = loadImage("pop2");
         allGraphic[3] = loadImage("pop3");
         allGraphic[4] = loadImage("pop4");
         allGraphic[5] = loadImage("pop5");
-        allGraphic[6] = loadImage("pop6");
         
-        //terrainSprite = loadImage("path");
-        grid = new Grid(container, new Coord(6,6),new Coord(20,50),new Coord(500,500));
         game = new Game(new Coord(6,6));
+        
+        updateQueue(0);
+        container.addChild(elementQueue[0]);
+        updateQueue(1);
+        container.addChild(elementQueue[1]);
+        updateQueue(2);
+        container.addChild(elementQueue[2]);
+        updateQueue(3);
+        container.addChild(elementQueue[3]);
+        
+        grid = new Grid(container, new Coord(6,6),new Coord(20,50),new Coord(500,500));
     };
     GameStates.Game.mouseDownEvent = function(e){
         e=e;
-        var index = mouse.pos.sub(grid.pos).div(grid.dim.x/grid.cells.x);
-        var flooredIndex = index.floor();
-        var queryInfo = game.QueryMove(flooredIndex);
+        if(mouse.pos.sub(grid.pos).withinBox(grid.dim)){
+            var index = mouse.pos.sub(grid.pos).div(grid.dim.x/grid.cells.x);
+            var flooredIndex = index.floor();
+            var queryInfo = game.QueryMove(flooredIndex);
+        }
     };
     GameStates.Game.mouseUpEvent = function(e){
         e=e;
-        var index = mouse.pos.sub(grid.pos).div(grid.dim.x/grid.cells.x);
-        var flooredIndex = index.floor();
-        var placeInfo = game.ApplyMove(flooredIndex);
-        grid.select(container,flooredIndex);
+        if(mouse.pos.sub(grid.pos).withinBox(grid.dim)){
+            var index = mouse.pos.sub(grid.pos).div(grid.dim.x/grid.cells.x);
+            var flooredIndex = index.floor();
+            var placeInfo = game.ApplyMove(flooredIndex);
+            grid.select(container,flooredIndex);
+        }
     };
 }
 //endregion
