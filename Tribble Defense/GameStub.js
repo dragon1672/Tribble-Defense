@@ -355,7 +355,7 @@ Game.prototype.ApplyMove     = function(pos,itemToPlace, preloadedQuery) {
     
     itemToPlace = itemToPlace || this.popFromQ();
     
-    if(itemToPlace === ItemType.Housing) {
+    if(itemToPlace.type === ItemType.Housing) {
         preloadedQuery = preloadedQuery || this.QueryMove(pos,itemToPlace);
         
         this.avalableItemPool.push(itemToPlace.duplicate());
@@ -372,7 +372,7 @@ Game.prototype.ApplyMove     = function(pos,itemToPlace, preloadedQuery) {
         thisCell.item = itemToPlace;
         this.avalableItemPool.push(itemToPlace.duplicate());
     } else {
-        if(itemToPlace === ItemType.BlackHole) {
+        if(itemToPlace.type === ItemType.BlackHole) {
             preloadedQuery.alreadyOccupied = thisCell.item !== null;
             thisCell.item = null;
             preloadedQuery = new Query(true);
