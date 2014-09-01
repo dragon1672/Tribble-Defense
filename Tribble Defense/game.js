@@ -690,7 +690,7 @@ function Item(type) {
     this.strength = 0;
     this.type = type;
     this.getLevel = function() {
-        return Math.floor((Math.log(this.population) / Math.log(3)) + 1);
+        return Math.max(0,Math.floor((Math.log(this.population) / Math.log(3)) + 1));
     };
     this.setToLevel = function(level) {
         this.population = Math.pow(3,(level-1));
@@ -741,7 +741,7 @@ function Game(size) { // pass in Coord of size
     { // init pool
         var basicHouse = new Item(ItemType.Housing);
         basicHouse.population = 1;
-        for(i = 0 ;i<100;i++) {
+        for(i = 0 ;i<5;i++) {
             this.avalableItemPool.push(basicHouse.duplicate());
         }
         this.avalableItemPool.push(new Item(ItemType.BlackHole));
@@ -846,7 +846,7 @@ Game.prototype.ApplyMove     = function(pos,itemToPlace, preloadedQuery) {
     
     itemToPlace = itemToPlace || this.popFromQ();
     
-    if(itemToPlace === ItemType.Housing) {
+    if(itemToPlace.type === ItemType.Housing) {
         preloadedQuery = preloadedQuery || this.QueryMove(pos,itemToPlace);
         
         this.avalableItemPool.push(itemToPlace.duplicate());
@@ -863,7 +863,7 @@ Game.prototype.ApplyMove     = function(pos,itemToPlace, preloadedQuery) {
         thisCell.item = itemToPlace;
         this.avalableItemPool.push(itemToPlace.duplicate());
     } else {
-        if(itemToPlace === ItemType.BlackHole) {
+        if(itemToPlace.type === ItemType.BlackHole) {
             thisCell.item = null;
         }
     }
@@ -895,8 +895,6 @@ Game.prototype.getPopulation = function() {
 Game.prototype.update = function() {
     console.log("lolz");
 };
-
-
 //endregion
 
 //region HUDOBJECT
@@ -1008,7 +1006,7 @@ function initGameScene(container) {
     allGraphic[3] = loadImage("pop3");
     allGraphic[4] = loadImage("pop4");
     allGraphic[5] = loadImage("pop5");
-    allGraphic[6] = loadImage("bolt");
+    allGraphic[0] = loadImage("bolt");
     
     GameStates.Game.enable = function() {
         backgroundMusic.setSoundFromString("GamePlay",true);
@@ -1073,7 +1071,8 @@ function initGameScene(container) {
             }
             else{
                 game.ApplyMove(flooredIndex);
-                grid.clear(container,flooredIndex);   
+                grid.clear(container,flooredIndex); 
+                updateQueue(container);
             }
         }
     };
