@@ -162,6 +162,9 @@ var FPS = 30;
         array.map(function(item) { ret = ret === null ? item : selector(item,ret);});
         return ret;
     }
+    function Max(array) { return SingleSelect(array,function(a,b) { return a > b ? a : b; }); }
+    function Min(array) { return SingleSelect(array,function(a,b) { return a < b ? a : b; }); }
+    function Sum(array) { return SingleSelect(array,function(a,b) { return a + b; }); }
     function Select(array,selector) {
         selector = selector || function(item) { return item; };
         var ret = [];
