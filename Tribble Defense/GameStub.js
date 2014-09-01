@@ -696,6 +696,7 @@ function Game(size) { // pass in Coord of size
         return this.nextItemList[index];
     };
     this.QueryMove     = function(pos,itemToPlace) {
+        itemToPlace = itemToPlace || this.itemQ(0);
         var thisCell = this.getCell(pos);
         var ret = new Query(thisCell !== null);
         function pushToRet(cellToAdd) {
