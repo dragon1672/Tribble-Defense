@@ -741,7 +741,7 @@ function Game(size) { // pass in Coord of size
     { // init pool
         var basicHouse = new Item(ItemType.Housing);
         basicHouse.population = 1;
-        for(i = 0 ;i<5;i++) {
+        for(i = 0 ;i<100;i++) {
             this.avalableItemPool.push(basicHouse.duplicate());
         }
         this.avalableItemPool.push(new Item(ItemType.BlackHole));
@@ -895,6 +895,7 @@ Game.prototype.getPopulation = function() {
 Game.prototype.update = function() {
     console.log("lolz");
 };
+
 
 //endregion
 
