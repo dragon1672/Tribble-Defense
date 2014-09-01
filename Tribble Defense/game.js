@@ -191,7 +191,7 @@ var manifest = [
     {src:"audio/StartScreen.mp3", id:"StartScreen"},
     {src:"images/SpeakerOff.png", id:"SpeakerOff"},
     {src:"images/Barrier.png", id:"Barrier"},
-    {src:"images/sprites.png", id:"mySprites"},
+    {src:"images/Hazard/LightningBolt.png", id:"bolt"},
     {src:"images/Population/purplePop1.png", id:"pop1"},
     {src:"images/Population/purplePop2.png", id:"pop2"},
     {src:"images/Population/purplePop3.png", id:"pop3"},
@@ -348,13 +348,6 @@ function initSprites() {
     spriteSheets.buttons = buttonSheet;
     //This takes the images loaded from the sprite sheet and breaks it into the individual frames. I cut and pasted the 'frames' parameter from the .js file created by Flash when I exported in easelJS format. I didn't cut and paste anything except 'frames' because I am using preloadJS to load all the images completely before running the game. That's what the queue.getResult is all about.
 	
-    spriteSheets.mainCharacter = new createjs.SpriteSheet({
-        images: [queue.getResult("mySprites")],
-        frames: [[0,0,114,96,0,57.849999999999994,96.55],[114,0,125,95,0,63.849999999999994,95.55],[0,96,130,95,0,66.85,95.55],[130,96,125,94,0,63.849999999999994,94.55],[0,191,114,96,0,57.849999999999994,96.55],[114,191,96,102,0,46.849999999999994,102.55],[0,293,78,105,0,36.849999999999994,105.55],[78,293,95,102,0,46.849999999999994,102.55]],
-        animations: {
-            fly:   [0, 7, "fly",0.5]
-        }     
-    });
     
     spriteSheets.barrier = new createjs.SpriteSheet({
         images: [queue.getResult("Barrier")],
@@ -363,9 +356,6 @@ function initSprites() {
             pulse:   [0, 3, "pulse",0.5]
         }     
     });
-    
-    
-    spriteSheets.mainCharacter.paused = false;
 }
 
 //endregion
@@ -522,7 +512,7 @@ function init() {
     initGameScene(GameStates.Game.container);
     //init gameOver
     {
-        var finalScore = new createjs.Text("Score:\n"+score, "50px Arial", "#000");
+        var finalScore = new createjs.Text("Score:\n"+pop.text, "50px Arial", "#000");
         finalScore.x = stage.canvas.width / 2 - 50;
         finalScore.y = stage.canvas.height / 2;
         GameStates.GameOver.container.addChild(finalScore);
@@ -532,13 +522,12 @@ function init() {
         
         GameStates.GameOver.container.addChild(btn);
         GameStates.GameOver.enable = function() {
-            backgroundMusic.setSoundFromString("StartScreen",true);
-            createjs.Sound.play("Failure");
+        backgroundMusic.setSoundFromString("Failure",true);
         };
         var btns = [btn];
         stackButtons(btns,10);
         GameStates.GameOver.update = function() {
-            finalScore.text = "Score:\n"+score;
+            finalScore.text = "Score:\n"+pop.text;
         };
     }
     CurrentGameState = GameStates.StartScreen;
@@ -983,15 +972,17 @@ var pop;
 var goal;
 
 function initGameScene(container) {
+    
+    terrainSprite = loadImage("path");
+    allGraphic[1] = loadImage("pop1");
+    allGraphic[2] = loadImage("pop2");
+    allGraphic[3] = loadImage("pop3");
+    allGraphic[4] = loadImage("pop4");
+    allGraphic[5] = loadImage("pop5");
+    allGraphic[6] = loadImage("bolt");
+    
     GameStates.Game.enable = function() {
         backgroundMusic.setSoundFromString("GamePlay",true);
-        
-        terrainSprite = loadImage("path");
-        allGraphic[1] = loadImage("pop1");
-        allGraphic[2] = loadImage("pop2");
-        allGraphic[3] = loadImage("pop3");
-        allGraphic[4] = loadImage("pop4");
-        allGraphic[5] = loadImage("pop5");
         
         game = new Game(new Coord(6,6));
         
@@ -1027,28 +1018,34 @@ function initGameScene(container) {
         if(mouse.pos.sub(grid.pos).withinBox(grid.dim)){
             var index = mouse.pos.sub(grid.pos).div(grid.dim.x/grid.cells.x);
             var flooredIndex = index.floor();
-            var upcomingLevel = game.itemQ(0).getLevel();
-            if(upcomingLevel>5){upcomingLevel=5;}
-            var queryInfo = game.QueryMove(flooredIndex,game.itemQ(0));
-            if(!queryInfo.alreadyOccupied){
-                var placeInfo = game.ApplyMove(flooredIndex);
-                grid.place(container,flooredIndex,upcomingLevel);
-                if(placeInfo.valid){
-                    for(var i=0; i<placeInfo.positions.length; i++)
-                    {
-                        if(!placeInfo.positions[i].isEqual(flooredIndex)){
-                            grid.clear(container,placeInfo.positions[i]);  
-                        }
-                        else {
-                            for(var j=0; j<placeInfo.levelBoost; j++){
-                                grid.upgrade(container,flooredIndex);
+            //if(game.itemQ(0).type==ItemType.BlackHole){
+                var upcomingLevel = game.itemQ(0).getLevel();
+                if(upcomingLevel>5){upcomingLevel=5;}
+                var queryInfo = game.QueryMove(flooredIndex,game.itemQ(0));
+                if(!queryInfo.alreadyOccupied){
+                    var placeInfo = game.ApplyMove(flooredIndex);
+                    grid.place(container,flooredIndex,upcomingLevel);
+                    if(placeInfo.valid){
+                        for(var i=0; i<placeInfo.positions.length; i++)
+                        {
+                            if(!placeInfo.positions[i].isEqual(flooredIndex)){
+                                grid.clear(container,placeInfo.positions[i]);  
+                            }
+                            else {
+                                for(var j=0; j<placeInfo.levelBoost; j++){
+                                    grid.upgrade(container,flooredIndex);
+                                }
                             }
                         }
                     }
+                    updateQueue(container);
+                    pop.text = "Pop " +game.getPopulation();
                 }
-                updateQueue(container);
-                pop.text = "Pop " +game.getPopulation();
-            }
+            //}
+            //else{
+            //    game.ApplyMove(flooredIndex);
+            //    grid.clear(container,flooredIndex);   
+            //}
         }
     };
     GameStates.Game.update = function() {
