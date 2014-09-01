@@ -199,7 +199,7 @@ function Item(type) {
         return Math.floor((Math.log(this.population) / Math.log(3)) + 1);
     };
     this.setToLevel = function(level) {
-        this.population = 3^(level-1);
+        this.population = Math.pow(3,(level));
     };
     this.duplicate = function() {
         var ret = new Item(this.type);
