@@ -91,6 +91,7 @@ var FPS = 30;
     Coord.prototype.rejection  = function(norm) { return this.sub(this.projection(norm)); };
     Coord.prototype.isZero     = function()     { return this.x === 0 && this.y === 0;};
     Coord.prototype.withinBox  = function(exclusiveBounds) { return this.x >= 0 && this.y >= 0 && this.x < exclusiveBounds.x && this.y < exclusiveBounds.y; };
+    Coord.prototype.floor      = function()     { return new Coord(Math.floor(this.x),Math.floor(this.y)); };
 
     //will have to make and manager per scene
     function KeyStateManager(KEYCODE) {
@@ -192,6 +193,12 @@ var manifest = [
     {src:"images/SpeakerOff.png", id:"SpeakerOff"},
     {src:"images/Barrier.png", id:"Barrier"},
     {src:"images/sprites.png", id:"mySprites"},
+    {src:"images/Population/pop1.png", id:"pop1"},
+    {src:"images/Population/pop2.png", id:"pop2"},
+    {src:"images/Population/pop3.png", id:"pop3"},
+    {src:"images/Population/pop4.png", id:"pop4"},
+    {src:"images/Population/pop5.png", id:"pop5"},
+    {src:"images/Population/pop6.png", id:"pop6"},
 ];
 
 var queue;
@@ -597,6 +604,8 @@ function Spawner() {
     };
 }
 
+
+
 function Game(size) { // pass in Coord of size
     this.getTurnCount  = function() { return size; };
     this.itemQ         = function(index) {
@@ -605,10 +614,15 @@ function Game(size) { // pass in Coord of size
         ret.population = 1;
         return ret;
     };
+    this.popFromQ = function() {
+        var ret = new Item(ItemType.Housing);
+        ret.population = 1;
+        return ret;
+    };
     this.QueryMove     = function(pos,itemToPlace) {
         pos = pos;
         itemToPlace = itemToPlace;
-        var ret = new Query(true);
+        return new Query(true);
     };
     this.ApplyMove     = function(pos,itemToPlace) { 
         pos = pos;
@@ -640,16 +654,24 @@ function Square(pos,dim){
     this.graphic.scaleX = dim.x/64;
     this.graphic.scaleY = dim.y/64;
     this.isPlaceable = true;
+    this.item = null;
+    this.level=0;
     
     this.upgrade = function() {
         this.level++;
-        this.graphic = allGraphic[this.type][this.level].clone();
-  };
+        this.item = allGraphic[this.level].clone();
+    };
+    this.fill = function(pos,dim){
+        this.item.x = pos.x;
+        this.item.y = pos.y;
+        this.item.scaleX = dim.x/64;
+        this.item.scaleY = dim.y/64;
+    };
 }
 
-function Grid(cells, pos, dim){
+function Grid(container, cells, pos, dim){
     this.dim = new Coord(dim.x,dim.y);
-    this.position = new Coord(pos.x,pos.y);
+    this.pos = new Coord(pos.x,pos.y);
     this.cells = new Coord(cells.y,cells.y);
     this.squares = [];
     for(var i=0; i<cells.x; i++){
@@ -658,7 +680,7 @@ function Grid(cells, pos, dim){
             var spos = new Coord(i*(dim.x/cells.x)+pos.x,j*(dim.y/cells.y)+pos.y);
             var sdim = new Coord(dim.x/cells.x,dim.y/cells.y);
             this.squares[i][j] = new Square(spos,sdim);
-            stage.addChild(this.squares[i][j].graphic);
+            container.addChild(this.squares[i][j].graphic);
         }
     }
     
@@ -666,25 +688,52 @@ function Grid(cells, pos, dim){
         
     };
     
-    this.select = function(x,y){
-        
+    this.select = function(container,i){
+        container.removeChild(this.squares[i.x][i.y].item);
+        this.squares[i.x][i.y].upgrade();
+            var spos = new Coord(i.x*(dim.x/cells.x)+pos.x,i.y*(dim.y/cells.y)+pos.y);
+            var sdim = new Coord(dim.x/cells.x,dim.y/cells.y);
+            this.squares[i.x][i.y].fill(spos,sdim);
+        container.addChild(this.squares[i.x][i.y].item);
     };
     
 }
 //endregion
 
 //region GAME
+var game;
+var grid;
+
 function initGameScene(container) {
     GameStates.Game.update = function() {
         
     };
     GameStates.Game.enable = function() {
         backgroundMusic.setSoundFromString("GamePlay",true);
+        
+        allGraphic[1] = loadImage("pop1");
+        allGraphic[2] = loadImage("pop2");
+        allGraphic[3] = loadImage("pop3");
+        allGraphic[4] = loadImage("pop4");
+        allGraphic[5] = loadImage("pop5");
+        allGraphic[6] = loadImage("pop6");
+        
         //terrainSprite = loadImage("path");
-        var cells = new Coord(6,6);
-        var pos = new Coord(20,50);
-        var dim = new Coord(500,500);
-        var grid = new Grid(cells,pos,dim);
+        grid = new Grid(container, new Coord(6,6),new Coord(20,50),new Coord(500,500));
+        game = new Game(6);
+    };
+    GameStates.Game.mouseDownEvent = function(e){
+        e=e;
+        var index = mouse.pos.sub(grid.pos).div(grid.dim.x/grid.cells.x);
+        var flooredIndex = index.floor();
+        var queryInfo = game.QueryMove(flooredIndex,game.popFromQ());
+    };
+    GameStates.Game.mouseUpEvent = function(e){
+        e=e;
+        var index = mouse.pos.sub(grid.pos).div(grid.dim.x/grid.cells.x);
+        var flooredIndex = index.floor();
+        var placeInfo = game.ApplyMove(flooredIndex,game.popFromQ());
+        grid.select(container,flooredIndex);
     };
 }
 //endregion
