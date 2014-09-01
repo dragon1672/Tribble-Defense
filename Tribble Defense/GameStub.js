@@ -250,15 +250,19 @@ function Game(size) { // pass in Coord of size
     this.ComboBoost = 0;
     this.avalableItemPool = [];
     //region init
+    var i;
     { // init pool
         var basicHouse = new Item(ItemType.Housing);
         basicHouse.population = 1;
-        this.avalableItemPool.push(basicHouse);
+        for(i = 0 ;i<100;i++) {
+            this.avalableItemPool.push(basicHouse.duplicate());
+        }
+        this.avalableItemPool.push(new Item(ItemType.BlackHole));
     }
     this.nextItemList = [];
     
     //init grid
-    for(var i=0;i<size.x;i++) {
+    for(i=0;i<size.x;i++) {
         this.Grid[i] = [];
         for(var j=0;j<size.y;j++) {
             this.Grid[i][j] = new Cell(new Coord(i,j));
@@ -352,20 +356,30 @@ Game.prototype.ApplyMove     = function(pos,itemToPlace, preloadedQuery) {
     if(thisCell === null) { throw new Error("Must apply move to valid cell"); }
     if(thisCell.item !== null) { console.log("warning placing ontop of existing cell"); }
 
-    preloadedQuery = preloadedQuery || this.QueryMove(pos,itemToPlace);
+    
     itemToPlace = itemToPlace || this.popFromQ();
-
-    if(preloadedQuery.valid) {
-        preloadedQuery.cells.map(function(meCell) {
-            if(!meCell.pos.isEqual(pos)) {
-                itemToPlace.population += meCell.item.population;
-                meCell.item = null;
-            }
-        });
-        itemToPlace.population += preloadedQuery.levelBoost * this.ComboBoost;
+    
+    if(itemToPlace === ItemType.Housing) {
+        preloadedQuery = preloadedQuery || this.QueryMove(pos,itemToPlace);
+        
+        this.avalableItemPool.push(itemToPlace.duplicate());
+        
+        if(preloadedQuery.valid) {
+            preloadedQuery.cells.map(function(meCell) {
+                if(!meCell.pos.isEqual(pos)) {
+                    itemToPlace.population += meCell.item.population;
+                    meCell.item = null;
+                }
+            });
+            itemToPlace.population += preloadedQuery.levelBoost * this.ComboBoost;
+        }
+        thisCell.item = itemToPlace;
+        this.avalableItemPool.push(itemToPlace.duplicate());
+    } else {
+        if(itemToPlace === ItemType.BlackHole) {
+            thisCell.item = null;
+        }
     }
-    thisCell.item = itemToPlace;
-    this.avalableItemPool.push(itemToPlace.duplicate());
 
     this.turns--;
 
