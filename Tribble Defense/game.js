@@ -1115,7 +1115,10 @@ function Item(type) {
     this.strength = 0;
     this.type = type;
     this.getLevel = function() {
-        return this.population / 3 + 1;
+        return Math.floor(this.population / 3 + 1);
+    };
+    this.setToLevel = function(level) {
+        this.population = level * 3 - 1;
     };
     this.duplicate = function() {
         var ret = new Item(this.type);
@@ -1215,7 +1218,7 @@ Game.prototype.QueryMove     = function(pos,itemToPlace) {
     var itemToCheck = itemToPlace.duplicate();
     var sameType;
     while( (sameType = this.MoveHelper(new HashSet(),this.getCell(pos),itemToCheck)).length >=3 ) {
-        itemToCheck.population++;
+        itemToCheck.setToLevel(itemToCheck.getLevel()+1);
         ret.levelBoost++;
         sameType.map(pushToRet);
     }
@@ -1308,6 +1311,7 @@ function Square(pos,dim){
     
     this.upgrade = function() {
         this.level++;
+        if(this.level>5){this.level=5;}
         this.item = allGraphic[this.level].clone();
     };
     this.fill = function(pos,dim){
@@ -1338,7 +1342,7 @@ function Grid(container, cells, pos, dim){
     };
     
     this.place = function(container,i,lev){
-        if(this.squares[i.x][i.y].isPlaceable===false){return;}
+        if(this.squares[i.x][i.y].isPlaceable===false){return false;}
         this.squares[i.x][i.y].isPlaceable=false;
         this.squares[i.x][i.y].level = lev;
         this.squares[i.x][i.y].item = allGraphic[lev].clone();
@@ -1346,6 +1350,7 @@ function Grid(container, cells, pos, dim){
             var sdim = new Coord(dim.x/cells.x,dim.y/cells.y);
             this.squares[i.x][i.y].fill(spos,sdim);
         container.addChild(this.squares[i.x][i.y].item);
+        return true;
     };
     
     this.upgrade = function(container,i){
@@ -1370,7 +1375,9 @@ function updateQueue(container){
     for(var i=3; i>=0; i--){
         container.removeChild(elementQueue[i]);
         if(i===0){mod=2;}
-        elementQueue[i] = allGraphic[game.itemQ(i).getLevel()].clone();
+        var lev = game.itemQ(i).getLevel();
+        if(lev>5){lev=5;}
+        elementQueue[i] = allGraphic[lev].clone();
         elementQueue[i].x = 650-25*mod;
         elementQueue[i].y = 550-(50)*(3-i)-50*mod;
         elementQueue[i].scaleX = 50*mod/128;
@@ -1434,26 +1441,27 @@ function initGameScene(container) {
             var index = mouse.pos.sub(grid.pos).div(grid.dim.x/grid.cells.x);
             var flooredIndex = index.floor();
             var upcomingLevel = game.itemQ(0).getLevel();
-            var placeInfo = game.ApplyMove(flooredIndex,game.popFromQ());
-            if(placeInfo.valid){
+            if(upcomingLevel>5){upcomingLevel=5;}
+            var queryInfo = game.QueryMove(flooredIndex,game.itemQ(0));
+            if(!queryInfo.alreadyOccupied){
+                var placeInfo = game.ApplyMove(flooredIndex,game.itemQ(0),queryInfo);
                 grid.place(container,flooredIndex,upcomingLevel);
-                for(var i=0; i<placeInfo.positions.length; i++)
-                {
-                    if(!placeInfo.positions[i].isEqual(flooredIndex)){
-                        grid.clear(container,placeInfo.positions[i]);  
-                    }
-                    else {
-                        for(var j=0; j<placeInfo.levelBoost; j++){
-                            grid.upgrade(container,flooredIndex);
+                if(placeInfo.valid){
+                    for(var i=0; i<placeInfo.positions.length; i++)
+                    {
+                        if(!placeInfo.positions[i].isEqual(flooredIndex)){
+                            grid.clear(container,placeInfo.positions[i]);  
+                        }
+                        else {
+                            for(var j=0; j<placeInfo.levelBoost; j++){
+                                grid.upgrade(container,flooredIndex);
+                            }
                         }
                     }
                 }
+                updateQueue(container);
+                pop.text = game.getPopulation();
             }
-            else{
-                grid.place(container,flooredIndex,upcomingLevel);
-            }
-            updateQueue(container);
-            pop.text = game.getPopulation();
         }
     };
     GameStates.Game.update = function() {
