@@ -616,6 +616,9 @@ function Item(type) {
     this.direction = new Coord();
     this.strength = 0;
     this.type = type;
+    this.getLevel = function() {
+        return this.population / 3 + 1;
+    };
     this.duplicate = function() {
         var ret = new Item(this.type);
         ret.update     = this.update;
@@ -626,7 +629,7 @@ function Item(type) {
     };
     this.isEqual = function(that) {
         if(that === null) { return false; }
-        return this.population === that.population && 
+        return this.getLevel() === that.getLevel() && 
                this.direction.isEqual(that.direction) && 
                this.strength === that.strength &&
                this.type === that.type;
@@ -655,7 +658,7 @@ function Game(size) { // pass in Coord of size
     this.size = size;
     this.turns = 42;
     this.Grid = [];
-    this.ComboBoost = 2;
+    this.ComboBoost = 0;
     this.avalableItemPool = [];
     //region init
     { // init pool
