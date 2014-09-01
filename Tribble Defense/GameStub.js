@@ -63,527 +63,105 @@ Coord.prototype.withinBox  = function(exclusiveBounds) { return this.x >= 0 && t
 
 //region hasy
 
-/**
- * Copyright 2013 Tim Down.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
-/**
- * HashSet
- *
- * This is a JavaScript implementation of HashSet, similar in concept to those found in Java or C#'s standard libraries.
- * It is distributed as part of jshashtable and depends on jshashtable.js. It creates a single constructor function
- * called HashSet in the global scope.
- *
- * Depends on: jshashtable.js
- * Author: Tim Down <tim@timdown.co.uk>
- * Version: 3.0
- * Build date: 17 July 2013
- * Website: http://www.timdown.co.uk/jshashtable/
- */
-
-function HashSet(param1, param2) {
-    var hashTable = new Hashtable(param1, param2);
-
-    this.add = function(o) {
-        hashTable.put(o, true);
-    };
-
-    this.addAll = function(arr) {
-        for (var i = 0, len = arr.length; i < len; ++i) {
-            hashTable.put(arr[i], true);
-        }
-    };
-
-    this.values = function() {
-        return hashTable.keys();
-    };
-
-    this.remove = function(o) {
-        return hashTable.remove(o) ? o : null;
-    };
-
-    this.contains = function(o) {
-        return hashTable.containsKey(o);
-    };
-
-    this.clear = function() {
-        hashTable.clear();
-    };
-
-    this.size = function() {
-        return hashTable.size();
-    };
-
-    this.isEmpty = function() {
-        return hashTable.isEmpty();
-    };
-
-    this.clone = function() {
-        var h = new HashSet(param1, param2);
-        h.addAll(hashTable.keys());
-        return h;
-    };
-
-    this.intersection = function(hashSet) {
-        var intersection = new HashSet(param1, param2);
-        var values = hashSet.values(), i = values.length, val;
-        while (i--) {
-            val = values[i];
-            if (hashTable.containsKey(val)) {
-                intersection.add(val);
-            }
-        }
-        return intersection;
-    };
-
-    this.union = function(hashSet) {
-        var union = this.clone();
-        var values = hashSet.values(), i = values.length, val;
-        while (i--) {
-            val = values[i];
-            if (!hashTable.containsKey(val)) {
-                union.add(val);
-            }
-        }
-        return union;
-    };
-
-    this.isSubsetOf = function(hashSet) {
-        var values = hashTable.keys(), i = values.length;
-        while (i--) {
-            if (!hashSet.contains(values[i])) {
-                return false;
-            }
-        }
-        return true;
-    };
-
-    this.complement = function(hashSet) {
-        var complement = new HashSet(param1, param2);
-        var values = this.values(), i = values.length, val;
-        while (i--) {
-            val = values[i];
-            if (!hashSet.contains(val)) {
-                complement.add(val);
-            }
-        }
-        return complement;
-    };
-}
-
-/**
- * @license jahashtable, a JavaScript implementation of a hash table. It creates a single constructor function called
- * Hashtable in the global scope.
- *
- * http://www.timdown.co.uk/jshashtable/
- * Copyright 2013 Tim Down.
- * Version: 3.0
- * Build date: 17 July 2013
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-var Hashtable = (function(UNDEFINED) {
-    var FUNCTION = "function", STRING = "string", UNDEF = "undefined";
-
-    // Require Array.prototype.splice, Object.prototype.hasOwnProperty and encodeURIComponent. In environments not
-    // having these (e.g. IE <= 5), we bail out now and leave Hashtable null.
-    if (typeof encodeURIComponent == UNDEF ||
-            Array.prototype.splice === UNDEFINED ||
-            Object.prototype.hasOwnProperty === UNDEFINED) {
-        return null;
-    }
-
-    function toStr(obj) {
-        return (typeof obj == STRING) ? obj : "" + obj;
-    }
-
-    function hashObject(obj) {
-        var hashCode;
-        if (typeof obj == STRING) {
-            return obj;
-        } else if (typeof obj.hashCode == FUNCTION) {
-            // Check the hashCode method really has returned a string
-            hashCode = obj.hashCode();
-            return (typeof hashCode == STRING) ? hashCode : hashObject(hashCode);
-        } else {
-            return toStr(obj);
-        }
-    }
-    
-    function merge(o1, o2) {
-        for (var i in o2) {
-            if (o2.hasOwnProperty(i)) {
-                o1[i] = o2[i];
-            }
-        }
-    }
-
-    function equals_fixedValueHasEquals(fixedValue, variableValue) {
-        return fixedValue.equals(variableValue);
-    }
-
-    function equals_fixedValueNoEquals(fixedValue, variableValue) {
-        return (typeof variableValue.equals == FUNCTION) ?
-            variableValue.equals(fixedValue) : (fixedValue === variableValue);
-    }
-
-    function createKeyValCheck(kvStr) {
-        return function(kv) {
-            if (kv === null) {
-                throw new Error("null is not a valid " + kvStr);
-            } else if (kv === UNDEFINED) {
-                throw new Error(kvStr + " must not be undefined");
-            }
-        };
-    }
-
-    var checkKey = createKeyValCheck("key"), checkValue = createKeyValCheck("value");
-
-    /*----------------------------------------------------------------------------------------------------------------*/
-
-    function Bucket(hash, firstKey, firstValue, equalityFunction) {
-        this[0] = hash;
-        this.entries = [];
-        this.addEntry(firstKey, firstValue);
-
-        if (equalityFunction !== null) {
-            this.getEqualityFunction = function() {
-                return equalityFunction;
-            };
-        }
-    }
-
-    var EXISTENCE = 0, ENTRY = 1, ENTRY_INDEX_AND_VALUE = 2;
-
-    function createBucketSearcher(mode) {
-        return function(key) {
-            var i = this.entries.length, entry, equals = this.getEqualityFunction(key);
-            while (i--) {
-                entry = this.entries[i];
-                if ( equals(key, entry[0]) ) {
-                    switch (mode) {
-                        case EXISTENCE:
-                            return true;
-                        case ENTRY:
-                            return entry;
-                        case ENTRY_INDEX_AND_VALUE:
-                            return [ i, entry[1] ];
-                    }
-                }
-            }
-            return false;
-        };
-    }
-
-    function createBucketLister(entryProperty) {
-        return function(aggregatedArr) {
-            var startIndex = aggregatedArr.length;
-            for (var i = 0, entries = this.entries, len = entries.length; i < len; ++i) {
-                aggregatedArr[startIndex + i] = entries[i][entryProperty];
-            }
-        };
-    }
-
-    Bucket.prototype = {
-        getEqualityFunction: function(searchValue) {
-            return (typeof searchValue.equals == FUNCTION) ? equals_fixedValueHasEquals : equals_fixedValueNoEquals;
-        },
-
-        getEntryForKey: createBucketSearcher(ENTRY),
-
-        getEntryAndIndexForKey: createBucketSearcher(ENTRY_INDEX_AND_VALUE),
-
-        removeEntryForKey: function(key) {
-            var result = this.getEntryAndIndexForKey(key);
-            if (result) {
-                this.entries.splice(result[0], 1);
-                return result[1];
-            }
-            return null;
-        },
-
-        addEntry: function(key, value) {
-            this.entries.push( [key, value] );
-        },
-
-        keys: createBucketLister(0),
-
-        values: createBucketLister(1),
-
-        getEntries: function(destEntries) {
-            var startIndex = destEntries.length;
-            for (var i = 0, entries = this.entries, len = entries.length; i < len; ++i) {
-                // Clone the entry stored in the bucket before adding to array
-                destEntries[startIndex + i] = entries[i].slice(0);
-            }
-        },
-
-        containsKey: createBucketSearcher(EXISTENCE),
-
-        containsValue: function(value) {
-            var entries = this.entries, i = entries.length;
-            while (i--) {
-                if ( value === entries[i][1] ) {
-                    return true;
-                }
-            }
-            return false;
-        }
-    };
-
-    /*----------------------------------------------------------------------------------------------------------------*/
-
-    // Supporting functions for searching hashtable buckets
-
-    function searchBuckets(buckets, hash) {
-        var i = buckets.length, bucket;
-        while (i--) {
-            bucket = buckets[i];
-            if (hash === bucket[0]) {
-                return i;
-            }
-        }
-        return null;
-    }
-
-    function getBucketForHash(bucketsByHash, hash) {
-        var bucket = bucketsByHash[hash];
-
-        // Check that this is a genuine bucket and not something inherited from the bucketsByHash's prototype
-        return ( bucket && (bucket instanceof Bucket) ) ? bucket : null;
-    }
-
-    /*----------------------------------------------------------------------------------------------------------------*/
-
-    function Hashtable() {
-        var buckets = [];
-        var bucketsByHash = {};
-        var properties = {
-            replaceDuplicateKey: true,
-            hashCode: hashObject,
-            equals: null
-        };
-
-        var arg0 = arguments[0], arg1 = arguments[1];
-        if (arg1 !== UNDEFINED) {
-            properties.hashCode = arg0;
-            properties.equals = arg1;
-        } else if (arg0 !== UNDEFINED) {
-            merge(properties, arg0);
-        }
-
-        var hashCode = properties.hashCode, equals = properties.equals;
-
-        this.properties = properties;
-
-        this.put = function(key, value) {
-            checkKey(key);
-            checkValue(value);
-            var hash = hashCode(key), bucket, bucketEntry, oldValue = null;
-
-            // Check if a bucket exists for the bucket key
-            bucket = getBucketForHash(bucketsByHash, hash);
-            if (bucket) {
-                // Check this bucket to see if it already contains this key
-                bucketEntry = bucket.getEntryForKey(key);
-                if (bucketEntry) {
-                    // This bucket entry is the current mapping of key to value, so replace the old value.
-                    // Also, we optionally replace the key so that the latest key is stored.
-                    if (properties.replaceDuplicateKey) {
-                        bucketEntry[0] = key;
-                    }
-                    oldValue = bucketEntry[1];
-                    bucketEntry[1] = value;
-                } else {
-                    // The bucket does not contain an entry for this key, so add one
-                    bucket.addEntry(key, value);
-                }
-            } else {
-                // No bucket exists for the key, so create one and put our key/value mapping in
-                bucket = new Bucket(hash, key, value, equals);
-                buckets.push(bucket);
-                bucketsByHash[hash] = bucket;
-            }
-            return oldValue;
-        };
-
-        this.get = function(key) {
-            checkKey(key);
-
-            var hash = hashCode(key);
-
-            // Check if a bucket exists for the bucket key
-            var bucket = getBucketForHash(bucketsByHash, hash);
-            if (bucket) {
-                // Check this bucket to see if it contains this key
-                var bucketEntry = bucket.getEntryForKey(key);
-                if (bucketEntry) {
-                    // This bucket entry is the current mapping of key to value, so return the value.
-                    return bucketEntry[1];
-                }
-            }
-            return null;
-        };
-
-        this.containsKey = function(key) {
-            checkKey(key);
-            var bucketKey = hashCode(key);
-
-            // Check if a bucket exists for the bucket key
-            var bucket = getBucketForHash(bucketsByHash, bucketKey);
-
-            return bucket ? bucket.containsKey(key) : false;
-        };
-
-        this.containsValue = function(value) {
-            checkValue(value);
-            var i = buckets.length;
-            while (i--) {
-                if (buckets[i].containsValue(value)) {
-                    return true;
-                }
-            }
-            return false;
-        };
-
-        this.clear = function() {
-            buckets.length = 0;
-            bucketsByHash = {};
-        };
-
-        this.isEmpty = function() {
-            return !buckets.length;
-        };
-
-        var createBucketAggregator = function(bucketFuncName) {
-            return function() {
-                var aggregated = [], i = buckets.length;
-                while (i--) {
-                    buckets[i][bucketFuncName](aggregated);
-                }
-                return aggregated;
-            };
-        };
-
-        this.keys = createBucketAggregator("keys");
-        this.values = createBucketAggregator("values");
-        this.entries = createBucketAggregator("getEntries");
-
-        this.remove = function(key) {
-            checkKey(key);
-
-            var hash = hashCode(key), bucketIndex, oldValue = null;
-
-            // Check if a bucket exists for the bucket key
-            var bucket = getBucketForHash(bucketsByHash, hash);
-
-            if (bucket) {
-                // Remove entry from this bucket for this key
-                oldValue = bucket.removeEntryForKey(key);
-                if (oldValue !== null) {
-                    // Entry was removed, so check if bucket is empty
-                    if (bucket.entries.length === 0) {
-                        // Bucket is empty, so remove it from the bucket collections
-                        bucketIndex = searchBuckets(buckets, hash);
-                        buckets.splice(bucketIndex, 1);
-                        delete bucketsByHash[hash];
-                    }
-                }
-            }
-            return oldValue;
-        };
-
-        this.size = function() {
-            var total = 0, i = buckets.length;
-            while (i--) {
-                total += buckets[i].entries.length;
-            }
-            return total;
-        };
-    }
-
-    Hashtable.prototype = {
-        each: function(callback) {
-            var entries = this.entries(), i = entries.length, entry;
-            while (i--) {
-                entry = entries[i];
-                callback(entry[0], entry[1]);
-            }
-        },
-
-        equals: function(hashtable) {
-            var keys, key, val, count = this.size();
-            if (count == hashtable.size()) {
-                keys = this.keys();
-                while (count--) {
-                    key = keys[count];
-                    val = hashtable.get(key);
-                    if (val === null || val !== this.get(key)) {
-                        return false;
-                    }
-                }
-                return true;
-            }
-            return false;
-        },
-
-        putAll: function(hashtable, conflictCallback) {
-            var entries = hashtable.entries();
-            var entry, key, value, thisValue, i = entries.length;
-            var hasConflictCallback = (typeof conflictCallback == FUNCTION);
-            while (i--) {
-                entry = entries[i];
-                key = entry[0];
-                value = entry[1];
-
-                // Check for a conflict. The default behaviour is to overwrite the value for an existing key
-                if ( hasConflictCallback && (thisValue = this.get(key)) ) {
-                    value = conflictCallback(key, thisValue, value);
-                }
-                this.put(key, value);
-            }
-        },
-
-        clone: function() {
-            var clone = new Hashtable(this.properties);
-            clone.putAll(this);
-            return clone;
-        }
-    };
-
-    Hashtable.prototype.toQueryString = function() {
-        var entries = this.entries(), i = entries.length, entry;
-        var parts = [];
-        while (i--) {
-            entry = entries[i];
-            parts[i] = encodeURIComponent( toStr(entry[0]) ) + "=" + encodeURIComponent( toStr(entry[1]) );
-        }
-        return parts.join("&");
-    };
-
-    return Hashtable;
+/*
+ * Hash table developed by Anthony Corbin
+//*/
+var HashTable = (function() {
+	function HashTable() {
+		this.pairs = [];
+		this.orderedPairs = [];
+	}
+	HashTable.prototype.hashObject = function (value) {
+		return (typeof value) + ' ' + (value instanceof Object ? (value.__hash || (value.__hash = ++arguments.callee.current)) : value.toString());
+	};
+	HashTable.prototype.hashObject.current = 0;
+	function KeyValuePair(hash, key, val) {
+		this.hash = hash;
+		this.key = key;
+		this.val = val;
+	}
+	KeyValuePair.prototype.containsKey = function (key) { return this.key === key; };
+	KeyValuePair.prototype.containsVal = function (val) { return this.val === val; };
+	HashTable.prototype.add = function (newKey, newVal) {
+		var hash = this.hashObject(newKey);
+		if (!this.containsKey(newKey)) {
+			this.pairs[hash] = new KeyValuePair(hash, newKey, newVal);
+			this.orderedPairs.push(this.pairs[hash]);
+		} else {
+			this.pairs[hash].val = newVal;
+		}
+	};
+	HashTable.prototype.put  = this.add;
+	HashTable.prototype.get = function (key) {
+		var hash = this.hashObject(key);
+		if (this.pairs[hash] !== null) { return this.pairs[hash].val; }
+		return null;
+	};
+	HashTable.prototype.remove = function (key) {
+		var i, hash;
+		if (this.containsKey(key)) {
+			hash = this.hashObject(key);
+			for (i = 0; i < this.orderedPairs.length; i++) {
+				if (this.orderedPairs[i] === this.pairs[hash]) {
+					this.orderedPairs.splice(i, 1);
+					this.pairs[hash] = null;
+					return;
+				}
+			}
+			throw new Error("contain returned true, but key not found");
+		}
+	};
+	HashTable.prototype.containsKey = function (key) {
+		var hash = this.hashObject(key);
+		return (this.pairs[hash] && (this.pairs[hash] instanceof KeyValuePair)) ? true : false;
+	};
+	HashTable.prototype.containsValue = function (val) {
+		var ret = false;
+		this.orderedPairs.map(function (item) {
+			ret = ret || item.val === val;
+		});
+		return ret;
+	};
+	HashTable.prototype.isEmpty = function () { return this.size() === 0; };
+	HashTable.prototype.size = function () { return this.orderedPairs.length; };
+	//pass in function(key,val)
+	HashTable.prototype.foreachInSet = function (theirFunction) {
+		this.orderedPairs.map(function (item) {
+			theirFunction(item.key, item.val);
+		});
+	};
+	return HashTable;
+}());
+
+/*
+ * Hash Set developed by Anthony Corbin
+//*/
+var HashSet = (function() {
+	function HashSet() {
+		this.myTable = new HashTable();
+	}
+	HashSet.prototype.add      = function (val)      { return this.myTable.add(val, true);       };
+	HashSet.prototype.addAll   = function (vals)     { var potato = this; vals.map(function(item) { potato.myTable.add(item,true); }); };
+	HashSet.prototype.contains = function (toCheck)  { return this.myTable.containsKey(toCheck); };
+	HashSet.prototype.remove   = function (toRemove) { return this.myTable.remove(toRemove);     };
+	HashSet.prototype.size     = function ()         { return this.myTable.size(); };
+	HashSet.prototype.union = function (that) {
+		var ret = new HashSet();
+		this.myTable.foreachInSet(function (key, val) { ret.add(key); });
+		that.myTable.foreachInSet(function (key, val) { ret.add(key); });
+		return ret;
+	};
+	HashSet.prototype.join = function (that) {
+		var ret = new HashSet();
+		this.myTable.foreachInSet(function (key, val) {
+			if (that.contains(key)) { ret.add(key); }
+		});
+		return ret;
+	};
+	HashSet.prototype.foreachInSet = function (theirFunction) {
+		return this.myTable.foreachInSet(function(key,val) { theirFunction(key); });
+	};
+    return HashSet;
 })();
 
 //endregion
