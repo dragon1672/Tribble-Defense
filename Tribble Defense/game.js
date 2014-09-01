@@ -690,7 +690,7 @@ function Item(type) {
     this.strength = 0;
     this.type = type;
     this.getLevel = function() {
-        return Math.max(0,Math.floor((Math.log(this.population) / Math.log(3)) + 1));
+        return Math.floor((Math.log(this.population) / Math.log(3)) + 1);
     };
     this.setToLevel = function(level) {
         this.population = Math.pow(3,(level-1));
@@ -741,7 +741,7 @@ function Game(size) { // pass in Coord of size
     { // init pool
         var basicHouse = new Item(ItemType.Housing);
         basicHouse.population = 1;
-        for(i = 0 ;i<5;i++) {
+        for(i = 0 ;i<100;i++) {
             this.avalableItemPool.push(basicHouse.duplicate());
         }
         this.avalableItemPool.push(new Item(ItemType.BlackHole));
@@ -802,12 +802,8 @@ Game.prototype.QueryMove     = function(pos,itemToPlace) {
         ret.levelBoost++;
         sameType.map(pushToRet);
     }
-    var temp = new HashSet();
-    temp.addAll(ret.positions);
-    ret.positions = temp.toList();
-    temp = new HashSet();
-    temp.addAll(ret.cells);
-    ret.cells = temp.toList();
+    var temp = new HashSet();   temp.addAll(ret.positions); temp.remove(pos);       ret.positions = temp.toList();
+    temp = new HashSet();       temp.addAll(ret.cells);     temp.remove(thisCell);  ret.cells = temp.toList();
     ret.valid = ret.positions.length > 2;
     return ret;
 };
@@ -864,7 +860,9 @@ Game.prototype.ApplyMove     = function(pos,itemToPlace, preloadedQuery) {
         this.avalableItemPool.push(itemToPlace.duplicate());
     } else {
         if(itemToPlace.type === ItemType.BlackHole) {
+            preloadedQuery.alreadyOccupied = thisCell.item !== null;
             thisCell.item = null;
+            preloadedQuery = new Query(true);
         }
     }
 
@@ -895,6 +893,7 @@ Game.prototype.getPopulation = function() {
 Game.prototype.update = function() {
     console.log("lolz");
 };
+
 //endregion
 
 //region HUDOBJECT
