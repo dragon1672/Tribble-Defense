@@ -512,7 +512,7 @@ function init() {
     initGameScene(GameStates.Game.container);
     //init gameOver
     {
-        var finalScore = new createjs.Text("Score:\n"+pop.text, "50px Arial", "#000");
+        var finalScore = new createjs.Text("Score:\n"+score, "50px Arial", "#000");
         finalScore.x = stage.canvas.width / 2 - 50;
         finalScore.y = stage.canvas.height / 2;
         GameStates.GameOver.container.addChild(finalScore);
@@ -527,7 +527,7 @@ function init() {
         var btns = [btn];
         stackButtons(btns,10);
         GameStates.GameOver.update = function() {
-            finalScore.text = "Score:\n"+pop.text;
+            finalScore.text = "Score:\n"+score;
         };
     }
     CurrentGameState = GameStates.StartScreen;
@@ -648,6 +648,13 @@ var HashSet = (function() {
 	HashSet.prototype.foreachInSet = function (theirFunction) {
 		return this.myTable.foreachInSet(function(key,val) { theirFunction(key); });
 	};
+    HashSet.prototype.toList = function () {
+        var ret = [];
+		this.foreachInSet(function (item) {
+            ret.push(item);
+		});
+        return ret;
+	};
     return HashSet;
 })();
 
@@ -686,7 +693,7 @@ function Item(type) {
         return Math.floor((Math.log(this.population) / Math.log(3)) + 1);
     };
     this.setToLevel = function(level) {
-        this.population = Math.pow(3,(level));
+        this.population = Math.pow(3,(level-1));
     };
     this.duplicate = function() {
         var ret = new Item(this.type);
@@ -730,15 +737,19 @@ function Game(size) { // pass in Coord of size
     this.ComboBoost = 0;
     this.avalableItemPool = [];
     //region init
+    var i;
     { // init pool
         var basicHouse = new Item(ItemType.Housing);
         basicHouse.population = 1;
-        this.avalableItemPool.push(basicHouse);
+        for(i = 0 ;i<5;i++) {
+            this.avalableItemPool.push(basicHouse.duplicate());
+        }
+        this.avalableItemPool.push(new Item(ItemType.BlackHole));
     }
     this.nextItemList = [];
     
     //init grid
-    for(var i=0;i<size.x;i++) {
+    for(i=0;i<size.x;i++) {
         this.Grid[i] = [];
         for(var j=0;j<size.y;j++) {
             this.Grid[i][j] = new Cell(new Coord(i,j));
@@ -791,6 +802,12 @@ Game.prototype.QueryMove     = function(pos,itemToPlace) {
         ret.levelBoost++;
         sameType.map(pushToRet);
     }
+    var temp = new HashSet();
+    temp.addAll(ret.positions);
+    ret.positions = temp.toList();
+    temp = new HashSet();
+    temp.addAll(ret.cells);
+    ret.cells = temp.toList();
     ret.valid = ret.positions.length > 2;
     return ret;
 };
@@ -826,20 +843,30 @@ Game.prototype.ApplyMove     = function(pos,itemToPlace, preloadedQuery) {
     if(thisCell === null) { throw new Error("Must apply move to valid cell"); }
     if(thisCell.item !== null) { console.log("warning placing ontop of existing cell"); }
 
-    preloadedQuery = preloadedQuery || this.QueryMove(pos,itemToPlace);
+    
     itemToPlace = itemToPlace || this.popFromQ();
-
-    if(preloadedQuery.valid) {
-        preloadedQuery.cells.map(function(meCell) {
-            if(!meCell.pos.isEqual(pos)) {
-                itemToPlace.population += meCell.item.population;
-                meCell.item = null;
-            }
-        });
-        itemToPlace.population += preloadedQuery.levelBoost * this.ComboBoost;
+    
+    if(itemToPlace === ItemType.Housing) {
+        preloadedQuery = preloadedQuery || this.QueryMove(pos,itemToPlace);
+        
+        this.avalableItemPool.push(itemToPlace.duplicate());
+        
+        if(preloadedQuery.valid) {
+            preloadedQuery.cells.map(function(meCell) {
+                if(!meCell.pos.isEqual(pos)) {
+                    itemToPlace.population += meCell.item.population;
+                    meCell.item = null;
+                }
+            });
+            itemToPlace.population += preloadedQuery.levelBoost * this.ComboBoost;
+        }
+        thisCell.item = itemToPlace;
+        this.avalableItemPool.push(itemToPlace.duplicate());
+    } else {
+        if(itemToPlace === ItemType.BlackHole) {
+            thisCell.item = null;
+        }
     }
-    thisCell.item = itemToPlace;
-    this.avalableItemPool.push(itemToPlace.duplicate());
 
     this.turns--;
 
@@ -868,6 +895,7 @@ Game.prototype.getPopulation = function() {
 Game.prototype.update = function() {
     console.log("lolz");
 };
+
 //endregion
 
 //region HUDOBJECT
@@ -1018,7 +1046,7 @@ function initGameScene(container) {
         if(mouse.pos.sub(grid.pos).withinBox(grid.dim)){
             var index = mouse.pos.sub(grid.pos).div(grid.dim.x/grid.cells.x);
             var flooredIndex = index.floor();
-            //if(game.itemQ(0).type==ItemType.BlackHole){
+            if(game.itemQ(0).type!=ItemType.BlackHole){
                 var upcomingLevel = game.itemQ(0).getLevel();
                 if(upcomingLevel>5){upcomingLevel=5;}
                 var queryInfo = game.QueryMove(flooredIndex,game.itemQ(0));
@@ -1041,11 +1069,11 @@ function initGameScene(container) {
                     updateQueue(container);
                     pop.text = "Pop " +game.getPopulation();
                 }
-            //}
-            //else{
-            //    game.ApplyMove(flooredIndex);
-            //    grid.clear(container,flooredIndex);   
-            //}
+            }
+            else{
+                game.ApplyMove(flooredIndex);
+                grid.clear(container,flooredIndex);   
+            }
         }
     };
     GameStates.Game.update = function() {
@@ -1055,6 +1083,7 @@ function initGameScene(container) {
         }
     };
     GameStates.Game.disable = function() {
+        score = pop.text;
         container.removeChild(turns);
         container.removeChild(pop); 
         container.removeChild(goal); 
