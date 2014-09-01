@@ -4,6 +4,8 @@
 /*global console */
 //*jslint vars: false */
 //*jslint unused: false */
+
+//region TEMPLATE
 var stage;
 var FPS = 30;
 
@@ -165,22 +167,21 @@ var FPS = 30;
 
 //region loading files
 var manifest = [
-    {src:"title.png", id:"title"},
-    {src:"background.png", id:"background"},
-    {src:"instructions.png", id:"instructions"},
-    {src:"credits.png", id:"credits"},
-    {src:"gameover.png", id:"gameover"},
-    {src:"buttons.png", id:"button"},
-    {src:"SpeakerOn.png", id:"SpeakerOn"},
-    {src:"SpeakerOff.png", id:"SpeakerOff"},
-    {src:"Barrier.png", id:"Barrier"},
-    {src:"sprites.png", id:"mySprites"}
-];
-var musicManifest = [
-    {src:"GameOver.wav", id:"GameOver"},
-    {src:"GamePlay.wav", id:"GamePlay"},
-    {src:"loading.wav", id:"Loading"},
-    {src:"StartScreen.wav", id:"StartScreen"}
+    {src:"images/title.png", id:"title"},
+    {src:"images/background.png", id:"background"},
+    {src:"images/instructions.png", id:"instructions"},
+    {src:"images/credits.png", id:"credits"},
+    {src:"images/gameover.png", id:"gameover"},
+    {src:"images/buttons.png", id:"button"},
+    {src:"images/SpeakerOn.png", id:"SpeakerOn"},
+    {src:"images/SpeakerOff.png", id:"SpeakerOff"},
+    {src:"images/Barrier.png", id:"Barrier"},
+    {src:"images/sprites.png", id:"mySprites"},
+ // music
+    {src:"audio/GameOver.mp3", id:"GameOver"},
+    {src:"audio/GamePlay.mp3", id:"GamePlay"},
+    {src:"audio/Loading.mp3", id:"Loading"},
+    {src:"audio/StartScreen.mp3", id:"StartScreen"}
 ];
 
 var queue;
@@ -235,18 +236,6 @@ var backgroundMusic = {
     
 };
 
-
-function setupMusic() {
-    createjs.Sound.alternateExtensions = ["ogg"];
-    createjs.Sound.addEventListener("fileload",playSound);
-    createjs.Sound.on("complete",function() { backgroundMusic.allLoaded = true; backgroundMusic.enable();});
-    createjs.Sound.registerManifest(musicManifest,"assets/audio/");
-    function playSound(event) {
-        if(event.id == "Loading") {
-            backgroundMusic.setSoundFromString(event.src,true);
-        }
-    }
-}
 var spriteSheets = {
     buttons: null,
     barrier: null,
@@ -264,7 +253,17 @@ function loadImage(key) {
 }
 
 function loadFiles() {
-    queue = new createjs.LoadQueue(true, "assets/images/");  //files are stored in 'images' directory
+    createjs.Sound.alternateExtensions = ["mp3"];
+    createjs.Sound.addEventListener("fileload",playSound);
+    createjs.Sound.on("complete",function() { backgroundMusic.allLoaded = true; backgroundMusic.enable();});
+    createjs.Sound.registerManifest(manifest,"assets/");
+    function playSound(event) {
+        if(event.id == "Loading") {
+            backgroundMusic.setSoundFromString(event.src,true);
+        }
+    }
+    
+    queue = new createjs.LoadQueue(true, "assets/");  //files are stored in 'images' directory
     queue.on("complete", loadComplete, this);  //when loading is done run 'loadComplete()'
     queue.on("progress", handleProgress, this);
     
@@ -418,7 +417,6 @@ function initSprites() {
     function main() {
         setupCanvas();
         mouseInit();
-        setupMusic();
         initLoadingScreen();
         registerGameLoop();
 
@@ -541,8 +539,273 @@ function initLoadingScreen() {
     stage.addChild(GameStates.Loading.container);
     CurrentGameState = GameStates.Loading;
 }
+//endregion
 
-//le game
+//region GAMEOBJECT
+var ItemType = { // enum
+    Hazard: "haz",
+    Housing: "woody",
+    Static: "oldTv",
+    ComboMaster: "combine with all",
+    BlackHole: "Anything will die",
+};
+
+function Cell(pos) {
+    this.isPlaceable = true;
+    this.item = null;
+    this.pos = pos;
+}
+
+function Query(valid) {
+    this.levelBoost = 0;
+    this.positions = [new Coord(), new Coord(1,1)];
+    this.valid = valid;
+}
+
+function Item(type) {
+    this.update = function () {};
+    this.population = 0;
+    this.direction = new Coord();
+    this.strength = 0;
+    this.type = type;
+}
+
+function Spawner() {
+    this.pos = new Coord();
+    this.directions = [new Coord(), new Coord()];
+    this.freqLow = 5;
+    this.freqHigh = 10;
+    this.turnsTillNextSpawn = 7; // will be updated based off freq
+    //will be changed 
+    this.update = function() {
+        this.turnsTillNextSpawn--;
+        if(this.turnsTillNextSpawn < 0) {
+            this.turnsTillNextSpawn = 7;
+        }
+    };
+}
+
+function Game(size) { // pass in Coord of size
+    this.getTurnCount  = function() { return size; };
+    this.itemQ         = function(index) {
+        index = index;
+        var ret = new Item(ItemType.Housing);
+        ret.population = 1;
+        return ret;
+    };
+    this.QueryMove     = function(pos,itemToPlace) {
+        pos = pos;
+        itemToPlace = itemToPlace;
+        var ret = new Query(true);
+    };
+    this.ApplyMove     = function(pos,itemToPlace) { 
+        pos = pos;
+        itemToPlace = itemToPlace;
+        return this.QueryMove();
+    };
+    this.getCell       = function(pos) {
+        return new Cell(pos);
+    };
+    this.getPopulation = function() { return 42; };
+    this.update = function() {};
+    
+    //for building map
+    this.setComboBoost = function(boost) { boost = boost; };
+    this.setSpawner = function(pos,spawner) { pos = pos; spawner = spawner;};
+    this.getDims = function() { return size; };
+}
+//endregion
+
+//region HUDOBJECT
+var terrainSprite = [];
+var allGraphic = [];
+
+function Square(pos,dim){
+    
+    this.graphic = new terrainSprite[0].clone();
+    this.graphic.x = pos.x;
+    this.graphic.y = pos.y;
+    this.graphic.width = dim.x;
+    this.graphic.height = dim.y;
+    this.isPlaceable = true;
+    
+    this.upgrade = function() {
+    this.level++;
+    this.graphic = allGraphic[this.type][this.level].clone();
+  };
+}
+
+function Grid(cells, pos, dim){
+    this.dim = new Coord(dim.x,dim.y);
+    console.log("dim" + this.dim.x + ", " + this.dim.y);
+    this.position = new Coord(pos.x,pos.y);
+    console.log("pos" + this.position.x + ", " + this.position.y);
+    this.cells = new Coord(cells.y,cells.y);
+    console.log("cells" + this.cells.x + ", " + this.cells.y);
+    this.squares = [];
+    for(var i=0; i<cells.x; i++){
+        this.squares[i] = [];
+        for(var j=0; j<cells.y; j++){
+            var spos = new Coord(i*(dim.x/cells.x)+pos.x,j*(dim.y/cells.y)+pos.y);
+            var sdim = new Coord(j*(dim.y/cells.y)+pos.y,dim.x/cells.x,dim.y/cells.y);
+            this.squares[i][j] = new Square(spos,sdim);
+            stage.addChild(this.squares[i][j].graphic);
+        }
+    }
+    
+    this.highlight = function(x,y) {
+        
+    };
+    
+    this.select = function(x,y){
+        
+        var xCoord = Math.floor((x-this.position.x)/this.dim.x*10);
+        var yCoord = Math.floor((y-this.position.y)/this.dim.y*10);
+        console.log(xCoord + ", " + yCoord);
+        
+        if(this.squares[xCoord][yCoord].isPlaceable&&this.squares[xCoord][yCoord].Item===null){
+            this.squares[xCoord][yCoord].Item = new Element();
+            this.squares[xCoord][yCoord].Item.type = 0;
+            this.squares[xCoord][yCoord].Item.level = 1;
+            this.squares[xCoord][yCoord].Item.graphic = allGraphic[0][1].clone();
+            this.squares[xCoord][yCoord].Item.graphic.x = xCoord*(this.dim.x/this.cells.x)+this.pos.x;
+            this.squares[xCoord][yCoord].Item.graphic.y = yCoord*(this.dim.y/this.cells.y)+this.pos.y;
+            this.squares[xCoord][yCoord].Item.graphic.width = this.dim.x/this.cells.x;
+            this.squares[xCoord][yCoord].Item.graphic.height = this.dim.y/this.cells.y;
+            stage.addChild(this.squares[xCoord][yCoord].Item.graphic);
+            console.log("added?");
+            
+        }
+        else{return false;}
+        while(this.compare(xCoord,yCoord,1,0,this.squares[xCoord][yCoord].Item.level)){
+            this.squares[xCoord][yCoord].Item.upgrade();
+        }
+        
+        return true;
+    };
+    
+    this.compare = function(x,y,depth,direction,val){
+        if(depth==3){return false;}
+        var match=0;
+        if(y>0&&direction!=3&&this.squares[x][y].Item.level==this.squares[x][y-1].Item.level){
+            
+            if(depth==2||match!==0){
+                stage.removeChild(this.squares[x][y-1].Item.graphic);
+                this.squares[x][y-1].Item=null;
+                if(match===0){
+                    stage.removeChild(this.squares[x][y].Item.graphic);
+                    this.squares[x][y].Item=null;
+                }
+                else if(match==2){
+                    stage.removeChild(this.squares[x+1][y].Item.graphic);
+                    this.squares[x+1][y].Item=null;
+                }
+                else if(match==3){
+                    stage.removeChild(this.squares[x][y+1].Item.graphic);
+                    this.squares[x][y+1].Item=null;
+                }
+                else if(match==4){
+                    stage.removeChild(this.squares[x-1][y].Item.graphic);
+                    this.squares[x-1][y].Item=null;
+                }
+                return true;
+            }
+            match = 1;
+            if(depth<3&&this.compare(x,y-1,depth+1,1,val)){
+                return true;   
+            }
+        }
+        if(x<this.size&&direction!=4&&this.squares[x][y].Item.level==this.squares[x+1][y].Item.level){
+            
+            if(depth==2||match!==0){
+                stage.removeChild(this.squares[x+1][y].Item.graphic);
+                this.squares[x+1][y].Item=null;
+                if(match===0){
+                    stage.removeChild(this.squares[x][y].Item.graphic);
+                    this.squares[x][y].Item=null;
+                }
+                else if(match==1){
+                    stage.removeChild(this.squares[x][y-1].Item.graphic);
+                    this.squares[x][y-1].Item=null;
+                }
+                else if(match==3){
+                    stage.removeChild(this.squares[x][y+1].Item.graphic);
+                    this.squares[x][y+1].Item=null;
+                }
+                else if(match==4){
+                    stage.removeChild(this.squares[x-1][y].Item.graphic);
+                    this.squares[x-1][y].Item=null;
+                }
+                return true;
+            }
+            match = 2;
+            if(depth<3&&this.compare(x+1,y,depth+1,2,val)){
+                return true;   
+            }
+        }
+        if(y<this.size&&direction!=1&&this.squares[x][y].Item.level==this.squares[x][y+1].Item.level){
+            
+            if(depth==2||match!==0){
+                stage.removeChild(this.squares[x][y+1].Item.graphic);
+                this.squares[x][y+1].Item=null;
+                if(match===0){
+                    stage.removeChild(this.squares[x][y].Item.graphic);
+                    this.squares[x][y].Item=null;
+                }
+                else if(match==1){
+                    stage.removeChild(this.squares[x][y-1].Item.graphic);
+                    this.squares[x][y-1].Item=null;
+                }
+                else if(match==2){
+                    stage.removeChild(this.squares[x+1][y].Item.graphic);
+                    this.squares[x+1][y].Item=null;
+                }
+                else if(match==4){
+                    stage.removeChild(this.squares[x-1][y].Item.graphic);
+                    this.squares[x-1][y].Item=null;
+                }
+                return true;
+            }
+            match = 3;
+            if(depth<3&&this.compare(x,y+1,depth+1,3,val)){
+                return true;   
+            }
+        }
+        if(x>0&&direction!=2&&this.squares[x][y].Item.level==this.squares[x-1][y].Item.level){
+            
+            if(depth==2||match!==0){
+                stage.removeChild(this.squares[x-1][y].Item.graphic);
+                this.squares[x-1][y].Item=null;
+                if(match===0){
+                    stage.removeChild(this.squares[x][y].Item.graphic);
+                    this.squares[x][y].Item=null;
+                }
+                else if(match==1){
+                    stage.removeChild(this.squares[x][y-1].Item.graphic);
+                    this.squares[x-1][y].Item=null;
+                }
+                else if(match==2){
+                    stage.removeChild(this.squares[x+1][y].Item.graphic);
+                    this.squares[x+1][y].Item=null;
+                }
+                else if(match==3){
+                    stage.removeChild(this.squares[x][y+1].Item.graphic);
+                    this.squares[x][y+1].Item=null;
+                }
+                return true;
+            }
+            match = 4;
+            if(depth<3&&this.compare(x-1,y,depth+1,4,val)){
+                return true;   
+            }
+        }
+        return false;
+    };
+    
+}
+//endregion
+
+//region GAME
 function initGameScene(container) {
     GameStates.Game.update = function() {
         
@@ -551,3 +814,4 @@ function initGameScene(container) {
         backgroundMusic.setSoundFromString("GamePlay",true);
     };
 }
+//endregion
