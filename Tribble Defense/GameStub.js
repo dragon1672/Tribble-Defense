@@ -617,10 +617,10 @@ function Item(type) {
     this.strength = 0;
     this.type = type;
     this.getLevel = function() {
-        return Math.floor(this.population / 3 + 1);
+        return Math.floor((Math.log(this.population) / Math.log(3)) + 1);
     };
     this.setToLevel = function(level) {
-        this.population = level * 3 - 1;
+        this.population = 3^(level-1);
     };
     this.duplicate = function() {
         var ret = new Item(this.type);
