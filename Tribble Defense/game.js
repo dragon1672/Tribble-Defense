@@ -156,9 +156,16 @@ var FPS = 30;
     function RandomElement(array) {
         return array[Rand(0,array.length-1)];
     }
-    function Max(array) {
-        var ret = 0;
-        array.map(function(item) { if(item > ret) {ret = item;}});
+    function SingleSelect(array,selector) {
+        selector = selector || function(a,b) { return a > b ? a : b; };
+        var ret = null;
+        array.map(function(item) { ret = ret === null ? item : selector(item,ret);});
+        return ret;
+    }
+    function Select(array,selector) {
+        selector = selector || function(item) { return item; };
+        var ret = [];
+        array.map(function(item) { ret.push(selector(item));});
         return ret;
     }
 //endregion
