@@ -619,6 +619,9 @@ function Item(type) {
     this.getLevel = function() {
         return Math.floor(this.population / 3 + 1);
     };
+    this.setToLevel = function(level) {
+        this.population = level * 3 - 1;
+    };
     this.duplicate = function() {
         var ret = new Item(this.type);
         ret.update     = this.update;
@@ -717,7 +720,7 @@ Game.prototype.QueryMove     = function(pos,itemToPlace) {
     var itemToCheck = itemToPlace.duplicate();
     var sameType;
     while( (sameType = this.MoveHelper(new HashSet(),this.getCell(pos),itemToCheck)).length >=3 ) {
-        itemToCheck.population++;
+        itemToCheck.setToLevel(itemToCheck.getLevel()+1);
         ret.levelBoost++;
         sameType.map(pushToRet);
     }
