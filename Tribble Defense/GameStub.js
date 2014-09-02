@@ -66,20 +66,22 @@ Coord.prototype.withinBox  = function(exclusiveBounds) { return this.x >= 0 && t
 /*
  * Hash table developed by Anthony Corbin
 //*/
+var hasher = function (value) {
+    return (typeof value) + ' ' + (value instanceof Object ? (value.__hash || (value.__hash = ++arguments.callee.current)) : value.toString());
+};
+hasher.current = 0;
+
 var HashTable = (function() {
 	function HashTable() {
 		this.pairs = [];
 		this.orderedPairs = [];
 	}
-	HashTable.prototype.hashObject = function (value) {
-		return (typeof value) + ' ' + (value instanceof Object ? (value.__hash || (value.__hash = ++arguments.callee.current)) : value.toString());
-	};
-	HashTable.prototype.hashObject.current = 0;
 	function KeyValuePair(hash, key, val) {
 		this.hash = hash;
 		this.key = key;
 		this.val = val;
 	}
+    HashTable.prototype.hashObject = hasher;
 	KeyValuePair.prototype.containsKey = function (key) { return this.key === key; };
 	KeyValuePair.prototype.containsVal = function (val) { return this.val === val; };
 	HashTable.prototype.add = function (newKey, newVal) {
@@ -405,9 +407,9 @@ Game.prototype.ApplyMove     = function(pos,itemToPlace, preloadedQuery) {
         this.avalableItemPool.push(itemToPlace.duplicate());
     } else {
         if(itemToPlace.type === ItemType.BlackHole) {
+            preloadedQuery = new Query(true);
             preloadedQuery.alreadyOccupied = thisCell.item !== null;
             thisCell.item = null;
-            preloadedQuery = new Query(true);
         }
     }
 
