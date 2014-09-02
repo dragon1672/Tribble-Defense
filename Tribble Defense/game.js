@@ -690,7 +690,7 @@ function Item(type) {
     this.strength = 0;
     this.type = type;
     this.getLevel = function() {
-        return Math.floor((Math.log(this.population) / Math.log(3)) + 1);
+        return Math.max(0,Math.floor((Math.log(this.population) / Math.log(3)) + 1));
     };
     this.setToLevel = function(level) {
         this.population = Math.pow(3,(level-1));
