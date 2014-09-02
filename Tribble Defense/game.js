@@ -632,18 +632,50 @@ var HashSet = (function() {
 	HashSet.prototype.contains = function (toCheck)  { return this.myTable.containsKey(toCheck); };
 	HashSet.prototype.remove   = function (toRemove) { return this.myTable.remove(toRemove);     };
 	HashSet.prototype.size     = function ()         { return this.myTable.size(); };
-	HashSet.prototype.union = function (that) {
+    
+    HashSet.prototype.cross = function (that) {
 		var ret = new HashSet();
-		this.myTable.foreachInSet(function (key, val) { ret.add(key); });
-		that.myTable.foreachInSet(function (key, val) { ret.add(key); });
+		this.foreachInSet(function (a) {
+            that.foreachInSet(function (b) {
+                var toAdd = {
+                    0: a,
+                    1: b,
+                };
+                ret.add(toAdd);
+            });
+        });
 		return ret;
 	};
-	HashSet.prototype.join = function (that) {
+	HashSet.prototype.union = function (that) {
+		var ret = new HashSet();
+		this.foreachInSet(function (item) { ret.add(item); });
+		that.foreachInSet(function (item) { ret.add(item); });
+		return ret;
+	};
+	HashSet.prototype.join  = function (that) {
 		var ret = new HashSet();
 		this.myTable.foreachInSet(function (key, val) {
 			if (that.contains(key)) { ret.add(key); }
 		});
 		return ret;
+	};
+    HashSet.prototype.removeSet = function (that) {
+        that.foreachInSet(function(item) {
+            this.remove(item); 
+        });
+	};
+    HashSet.prototype.isEqual   = function (that) {
+		return this.isSubsetOf(that) && that.isSuperSet(this);
+	};
+    HashSet.prototype.isSubSet  = function (that) {
+		var ret = true;
+		this.myTable.foreachInSet(function (item) {
+            ret = ret && that.contains(item);
+		});
+		return ret;
+	};
+    HashSet.prototype.isSuperSet   = function (that) {
+        return that.isSubSet(this);
 	};
 	HashSet.prototype.foreachInSet = function (theirFunction) {
 		return this.myTable.foreachInSet(function(key,val) { theirFunction(key); });
@@ -893,6 +925,7 @@ Game.prototype.getPopulation = function() {
 Game.prototype.update = function() {
     console.log("lolz");
 };
+
 
 //endregion
 
