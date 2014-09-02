@@ -834,7 +834,7 @@ Game.prototype.QueryMove     = function(pos,itemToPlace) {
     var sameType;
     while( (sameType = this.MoveHelper(new HashSet(),this.getCell(pos),itemToCheck)).length >=3 ) {
         itemToCheck.setToLevel(itemToCheck.getLevel()+1);
-        ret.levelBoost = itemToCheck.getLevel() - itemToPlace.getLevel();
+        ret.levelBoost++;
         sameType.map(pushToRet);
     }
     ret.valid = ret.positions.length > 2;
