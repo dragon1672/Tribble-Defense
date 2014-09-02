@@ -237,10 +237,12 @@ function Item(type) {
     this.strength = 0;
     this.type = type;
     this.getLevel = function() {
-        return Math.max(0,Math.floor((Math.log(this.population) / Math.log(3)) + 1));
+        //return Math.max(0,Math.floor((Math.log(this.population) / Math.log(3)) + 1));
+        return this.strength;
     };
     this.setToLevel = function(level) {
-        this.population = Math.pow(3,(level-1));
+        //this.population = Math.pow(3,(level-1));
+        this.strength = level;
     };
     this.duplicate = function() {
         var ret = new Item(this.type);
@@ -281,14 +283,15 @@ function Game(size) { // pass in Coord of size
     this.size = size;
     this.turns = 42;
     this.Grid = [];
-    this.ComboBoost = 0;
+    this.ComboBoost = 3;
     this.avalableItemPool = [];
     //region init
     var i;
     { // init pool
         var basicHouse = new Item(ItemType.Housing);
         basicHouse.population = 1;
-        for(i = 0 ;i<100;i++) {
+        basicHouse.strength = 1;
+        for(i = 0 ;i<5;i++) {
             this.avalableItemPool.push(basicHouse.duplicate());
         }
         this.avalableItemPool.push(new Item(ItemType.BlackHole));
@@ -346,11 +349,9 @@ Game.prototype.QueryMove     = function(pos,itemToPlace) {
     var sameType;
     while( (sameType = this.MoveHelper(new HashSet(),this.getCell(pos),itemToCheck)).length >=3 ) {
         itemToCheck.setToLevel(itemToCheck.getLevel()+1);
-        ret.levelBoost++;
+        ret.levelBoost = itemToCheck.getLevel() - itemToPlace.getLevel();
         sameType.map(pushToRet);
     }
-    var temp = new HashSet();   temp.addAll(ret.positions); temp.remove(pos);       ret.positions = temp.toList();
-    temp = new HashSet();       temp.addAll(ret.cells);     temp.remove(thisCell);  ret.cells = temp.toList();
     ret.valid = ret.positions.length > 2;
     return ret;
 };
