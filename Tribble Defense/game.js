@@ -1092,11 +1092,9 @@ function initGameScene(container) {
                             if(!placeInfo.positions[i].isEqual(flooredIndex)){
                                 grid.clear(container,placeInfo.positions[i]);  
                             }
-                            else {
-                                for(var j=0; j<placeInfo.levelBoost; j++){
-                                    grid.upgrade(container,flooredIndex);
-                                }
-                            }
+                        }
+                        for(var j=0; j<placeInfo.levelBoost; j++){
+                            grid.upgrade(container,flooredIndex);
                         }
                     }
                     updateQueue(container);
