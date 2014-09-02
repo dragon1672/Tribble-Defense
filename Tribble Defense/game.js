@@ -724,10 +724,10 @@ function Item(type) {
     this.strength = 0;
     this.type = type;
     this.getLevel = function() {
-        return Math.max(0,Math.floor((Math.log(this.population) / Math.log(3)) + 1));
+        return this.strength;
     };
     this.setToLevel = function(level) {
-        this.population = Math.pow(3,(level-1));
+        this.strength = level;
     };
     this.duplicate = function() {
         var ret = new Item(this.type);
@@ -768,13 +768,14 @@ function Game(size) { // pass in Coord of size
     this.size = size;
     this.turns = 42;
     this.Grid = [];
-    this.ComboBoost = 0;
+    this.ComboBoost = 3;
     this.avalableItemPool = [];
     //region init
     var i;
     { // init pool
         var basicHouse = new Item(ItemType.Housing);
         basicHouse.population = 1;
+        basicHouse.strength = 1;
         for(i = 0 ;i<5;i++) {
             this.avalableItemPool.push(basicHouse.duplicate());
         }
@@ -836,8 +837,6 @@ Game.prototype.QueryMove     = function(pos,itemToPlace) {
         ret.levelBoost++;
         sameType.map(pushToRet);
     }
-    var temp = new HashSet();   temp.addAll(ret.positions); temp.remove(pos);       ret.positions = temp.toList();
-    temp = new HashSet();       temp.addAll(ret.cells);     temp.remove(thisCell);  ret.cells = temp.toList();
     ret.valid = ret.positions.length > 2;
     return ret;
 };
@@ -889,14 +888,15 @@ Game.prototype.ApplyMove     = function(pos,itemToPlace, preloadedQuery) {
                 }
             });
             itemToPlace.population += preloadedQuery.levelBoost * this.ComboBoost;
+            itemToPlace.setToLevel(itemToPlace.getLevel()+preloadedQuery.levelBoost);
         }
         thisCell.item = itemToPlace;
         this.avalableItemPool.push(itemToPlace.duplicate());
     } else {
         if(itemToPlace.type === ItemType.BlackHole) {
+            preloadedQuery = new Query(true);
             preloadedQuery.alreadyOccupied = thisCell.item !== null;
             thisCell.item = null;
-            preloadedQuery = new Query(true);
         }
     }
 
