@@ -1,0 +1,6 @@
+To play the game use the items on the right side of the screen. 
+Click a spot on the grid, to the left, to place an item from the top of the stack.
+Place three items that look the same next to each other to combine them into a better item.
+Lightning bolts are powerups that allow you to click an item on the grid and delete it, 
+just incase you make a bad move. The goal of the game is to reach the population at the top 
+right side of the screen before the number of turns left hits zero.
