@@ -1102,7 +1102,8 @@ function initGameScene(container) {
                 }
             }
             else{
-                game.ApplyMove(flooredIndex);
+                var qeryInfo = game.QueryMove(flooredIndex,game.itemQ(0));
+                game.ApplyMove(flooredIndex,game.popFromQ(),qeryInfo);
                 grid.clear(container,flooredIndex); 
                 updateQueue(container);
             }
