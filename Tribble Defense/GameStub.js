@@ -237,11 +237,9 @@ function Item(type) {
     this.strength = 0;
     this.type = type;
     this.getLevel = function() {
-        //return Math.max(0,Math.floor((Math.log(this.population) / Math.log(3)) + 1));
         return this.strength;
     };
     this.setToLevel = function(level) {
-        //this.population = Math.pow(3,(level-1));
         this.strength = level;
     };
     this.duplicate = function() {
@@ -278,6 +276,21 @@ function Spawner() {
 
 //endregion
 
+var GameEvent = (function(){
+    function GameEvent() {}
+    GameEvent.calls = new HashSet();
+    GameEvent.prototype.callAll = function(a,b,c,d,e,f,g) {
+        this.calls.foreachInSet(function(item) { item(a,b,c,d,e,f,g); });
+    };
+    GameEvent.prototype.addCallBack = function(toAdd) {
+        this.calls.add(toAdd);
+    };
+    GameEvent.prototype.removeCallBack = function (toKill) {
+        this.calls.remove(toKill);
+    };
+    return GameEvent;
+}());
+
 function Game(size) { // pass in Coord of size
     
     this.size = size;
@@ -285,6 +298,17 @@ function Game(size) { // pass in Coord of size
     this.Grid = [];
     this.ComboBoost = 3;
     this.avalableItemPool = [];
+    
+    this.spawners = [];
+    //function(pos,oldItem, new item)
+    this.itemChangedEvent = new GameEvent();
+    //function(pos,hazard)
+    this.hazardSpawnedEvent = new GameEvent();
+    //function(oldPos,newPos)
+    this.hazardMovedEvent = new GameEvent();
+    //function(pos,hazard)
+    this.hazardRemovedEvent = new GameEvent();
+    
     //region init
     var i;
     { // init pool
@@ -294,6 +318,7 @@ function Game(size) { // pass in Coord of size
         for(i = 0 ;i<5;i++) {
             this.avalableItemPool.push(basicHouse.duplicate());
         }
+        //adding powerups
         this.avalableItemPool.push(new Item(ItemType.BlackHole));
     }
     this.nextItemList = [];
@@ -310,12 +335,16 @@ function Game(size) { // pass in Coord of size
     
     //for building map
     this.setComboBoost = function(boost) { boost = boost; };
-    this.setSpawner = function(pos,spawner) { pos = pos; spawner = spawner;};
+    this.addSpawner = function(pos,spawner) { pos = pos; spawner = spawner;};
     this.getDims = function() { return size; };
 }
 
 
-
+Game.prototype.addItemToPool = function(item,count) {
+    for(var i = 0 ;i<count;i++) {
+        this.avalableItemPool.push(item.duplicate());
+    }
+};
 Game.prototype.foreachCell = function(operation) {
     for(var i=0;i<this.size.x;i++) {
         for(var j=0;j<this.size.y;j++) {
@@ -415,6 +444,7 @@ Game.prototype.ApplyMove     = function(pos,itemToPlace, preloadedQuery) {
     }
 
     this.turns--;
+    this.update();
 
     return preloadedQuery;
 };
@@ -439,5 +469,15 @@ Game.prototype.getPopulation = function() {
     return ret;
 };
 Game.prototype.update = function() {
-    console.log("lolz");
+    this.spawners.map(function(item) {
+        item.update();
+        var cell = this.getCell(item.pos);
+        cell = new Cell();
+        if(cell.item !== null && cell.item.type === ItemType.Housing) {
+            //hazard beats item
+            
+            //item beats hazard
+            
+        }
+    });
 };
