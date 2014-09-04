@@ -312,11 +312,9 @@ function Game(size) { // pass in Coord of size
         var basicHouse = new Item(ItemType.Housing);
         basicHouse.population = 1;
         basicHouse.strength = 1;
-        for(i = 0 ;i<5;i++) {
-            this.avalableItemPool.push(basicHouse.duplicate());
-        }
+        this.addItemToPool(basicHouse,5);
         //adding powerups
-        this.avalableItemPool.push(new Item(ItemType.BlackHole));
+        this.addItemToPool(new Item(ItemType.BlackHole),1);
     }
     this.nextItemList = [];
     
@@ -338,6 +336,7 @@ function Game(size) { // pass in Coord of size
 
 
 Game.prototype.addItemToPool = function(item,count) {
+    count = count || 1;
     for(var i = 0 ;i<count;i++) {
         this.avalableItemPool.push(item.duplicate());
     }
