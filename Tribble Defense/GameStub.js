@@ -258,20 +258,10 @@ function Item(type) {
                this.type === that.type;
     };
 }
-
-function Spawner() {
-    this.pos = new Coord();
-    this.directions = [];
-    this.freqLow = 5;
-    this.freqHigh = 10;
-    this.turnsTillNextSpawn = 7; // will be updated based off freq
-    //will be changed 
-    this.update = function() {
-        this.turnsTillNextSpawn--;
-        if(this.turnsTillNextSpawn < 0) {
-            this.turnsTillNextSpawn = 7;
-        }
-    };
+function Hazard(level) {
+    var ret = new Item(ItemType.Hazard);
+    ret.setToLevel(level);
+    return ret;
 }
 
 //endregion
@@ -468,6 +458,24 @@ Game.prototype.getPopulation = function() {
     });
     return ret;
 };
+
+
+function Spawner(pos) {
+    this.pos = pos;
+    this.directions = [];
+    this.freqLow = 5;
+    this.freqHigh = 10;
+    this.turnsTillNextSpawn = Rand(this.freqLow,this.freqHigh); // will be updated based off freq
+    //will be changed 
+    this.updateTurns = function() {
+        this.turnsTillNextSpawn--;
+        if(this.turnsTillNextSpawn < 0) {
+            this.turnsTillNextSpawn = Rand(this.freqLow,this.freqHigh);
+        }
+    };
+}
+
+
 Game.prototype.update = function() {
     this.spawners.map(function(item) {
         item.update();
