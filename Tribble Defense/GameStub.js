@@ -429,7 +429,9 @@ Game.prototype.ApplyMove     = function(pos,itemToPlace, preloadedQuery) {
             preloadedQuery.cells.map(function(meCell) {
                 if(!meCell.pos.isEqual(pos)) {
                     itemToPlace.population += meCell.item.population;
+                    var old = meCell.item;
                     meCell.item = null;
+                    this.itemChangedEvent.callAll(meCell.pos,old,null);
                 }
             });
             itemToPlace.population += preloadedQuery.levelBoost * this.ComboBoost;
