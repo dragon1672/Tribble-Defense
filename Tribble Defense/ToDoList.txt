@@ -1,0 +1,14 @@
+Things to do
+
+Fix interface.
+	user needs to know what to do
+	add interface like in the google doc
+	
+add obsticles to first world
+add a way to gain turns/moves you can make
+make hazards work
+make levels that run right after each other
+add sound
+add animations
+add ability to choose to redo a level
+make an infinite level
