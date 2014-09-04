@@ -299,6 +299,9 @@ function Game(size) { // pass in Coord of size
     //function(pos,hazard)
     this.hazardRemovedEvent = new GameEvent();
     
+    //function()
+    this.itemQChangedEvent = new GameEvent();
+    
     //region init
     var i;
     { // init pool
@@ -346,7 +349,9 @@ Game.prototype.foreachCell = function(operation) {
 Game.prototype.getTurnCount  = function() { return this.turns; };
 Game.prototype.popFromQ = function() {
     this.itemQ(0);
-    return this.nextItemList.shift();
+    var ret = this.nextItemList.shift();
+    this.itemQChangedEvent.callAll();
+    return ret;
 };
 Game.prototype.itemQ         = function(index) {
     while(this.nextItemList.length <= index) {
