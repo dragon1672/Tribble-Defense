@@ -304,6 +304,9 @@ function Game(size) { // pass in Coord of size
     
     //function()
     this.itemQChangedEvent = new GameEvent();
+    //function()
+    this.populationChangedEvent = new GameEvent();
+    
     //endregion
     
     //region init
@@ -430,8 +433,12 @@ Game.prototype.ApplyMove     = function(pos,itemToPlace, preloadedQuery) {
                 }
             });
             itemToPlace.population += preloadedQuery.levelBoost * this.ComboBoost;
+            itemToPlace.setToLevel(itemToPlace.getLevel()+preloadedQuery.levelBoost);
+            this.populationChangedEvent.callAll();
         }
+        var old = thisCell.item;
         thisCell.item = itemToPlace;
+        this.itemChangedEvent.callAll(thisCell.pos,old,itemToPlace);
         this.avalableItemPool.push(itemToPlace.duplicate());
     } else {
         if(itemToPlace.type === ItemType.BlackHole) {
