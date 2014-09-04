@@ -263,9 +263,6 @@ function Hazard(level) {
     ret.setToLevel(level);
     return ret;
 }
-
-//endregion
-
 var GameEvent = (function(){
     function GameEvent() {}
     GameEvent.calls = new HashSet();
@@ -281,6 +278,9 @@ var GameEvent = (function(){
     return GameEvent;
 }());
 
+
+//endregion
+
 function Game(size) { // pass in Coord of size
     
     this.size = size;
@@ -290,6 +290,9 @@ function Game(size) { // pass in Coord of size
     this.avalableItemPool = [];
     
     this.spawners = [];
+    
+    //region events
+    
     //function(pos,oldItem, new item)
     this.itemChangedEvent = new GameEvent();
     //function(pos,hazard)
@@ -301,6 +304,7 @@ function Game(size) { // pass in Coord of size
     
     //function()
     this.itemQChangedEvent = new GameEvent();
+    //endregion
     
     //region init
     var i;
