@@ -329,7 +329,7 @@ function loadFiles() {
 function initSprites() {
     var buttonSheet = new createjs.SpriteSheet({
         images: [queue.getResult("button")],
-        frames: {width: 94, height: 33, regX: 46, regY: 15},
+        frames: {width: 188, height: 64, regX: 46, regY: 15},
         animations: {
         playUp:   [0, 0, "playUp"],
         playOver: [1, 1, "playOver"],
@@ -343,6 +343,9 @@ function initSprites() {
         creditsUp:   [9, 9,   "creditsUp"],
         creditsOver: [10, 10, "creditsOver"],
         creditsDown: [11, 11, "creditsDown"],
+        levelUp:   [12, 12, "levelUp"],
+        levelOver: [13, 13, "levelOver"],
+        levelDown: [14, 14, "levelDown"],
         } 
     });
     spriteSheets.buttons = buttonSheet;
@@ -553,22 +556,20 @@ function initLoadingScreen() {
 /*
  * Hash table developed by Anthony Corbin
 //*/
-var hasher = function (value) {
-    return (typeof value) + ' ' + (value instanceof Object ? (value.__hash || (value.__hash = ++arguments.callee.current)) : value.toString());
-};
-hasher.current = 0;
-
 var HashTable = (function() {
 	function HashTable() {
 		this.pairs = [];
 		this.orderedPairs = [];
 	}
+	HashTable.prototype.hashObject = function (value) {
+		return (typeof value) + ' ' + (value instanceof Object ? (value.__hash || (value.__hash = ++arguments.callee.current)) : value.toString());
+	};
+	HashTable.prototype.hashObject.current = 0;
 	function KeyValuePair(hash, key, val) {
 		this.hash = hash;
 		this.key = key;
 		this.val = val;
 	}
-    HashTable.prototype.hashObject = hasher;
 	KeyValuePair.prototype.containsKey = function (key) { return this.key === key; };
 	KeyValuePair.prototype.containsVal = function (val) { return this.val === val; };
 	HashTable.prototype.add = function (newKey, newVal) {
@@ -724,10 +725,10 @@ function Item(type) {
     this.strength = 0;
     this.type = type;
     this.getLevel = function() {
-        return this.strength;
+        return Math.max(0,Math.floor((Math.log(this.population) / Math.log(3)) + 1));
     };
     this.setToLevel = function(level) {
-        this.strength = level;
+        this.population = Math.pow(3,(level-1));
     };
     this.duplicate = function() {
         var ret = new Item(this.type);
@@ -768,14 +769,13 @@ function Game(size) { // pass in Coord of size
     this.size = size;
     this.turns = 42;
     this.Grid = [];
-    this.ComboBoost = 3;
+    this.ComboBoost = 0;
     this.avalableItemPool = [];
     //region init
     var i;
     { // init pool
         var basicHouse = new Item(ItemType.Housing);
         basicHouse.population = 1;
-        basicHouse.strength = 1;
         for(i = 0 ;i<5;i++) {
             this.avalableItemPool.push(basicHouse.duplicate());
         }
@@ -837,6 +837,8 @@ Game.prototype.QueryMove     = function(pos,itemToPlace) {
         ret.levelBoost++;
         sameType.map(pushToRet);
     }
+    var temp = new HashSet();   temp.addAll(ret.positions); temp.remove(pos);       ret.positions = temp.toList();
+    temp = new HashSet();       temp.addAll(ret.cells);     temp.remove(thisCell);  ret.cells = temp.toList();
     ret.valid = ret.positions.length > 2;
     return ret;
 };
@@ -888,15 +890,14 @@ Game.prototype.ApplyMove     = function(pos,itemToPlace, preloadedQuery) {
                 }
             });
             itemToPlace.population += preloadedQuery.levelBoost * this.ComboBoost;
-            itemToPlace.setToLevel(itemToPlace.getLevel()+preloadedQuery.levelBoost);
         }
         thisCell.item = itemToPlace;
         this.avalableItemPool.push(itemToPlace.duplicate());
     } else {
         if(itemToPlace.type === ItemType.BlackHole) {
-            preloadedQuery = new Query(true);
             preloadedQuery.alreadyOccupied = thisCell.item !== null;
             thisCell.item = null;
+            preloadedQuery = new Query(true);
         }
     }
 
@@ -940,8 +941,8 @@ function Square(pos,dim){
     this.graphic = terrainSprite.clone();
     this.graphic.x = pos.x;
     this.graphic.y = pos.y;
-    this.graphic.scaleX = dim.x/64;
-    this.graphic.scaleY = dim.y/64;
+    this.graphic.scaleX = dim.x/128;
+    this.graphic.scaleY = dim.y/128;
     this.isPlaceable = true;
     this.item = null;
     this.level=0;
@@ -1015,8 +1016,8 @@ function updateQueue(container){
         var lev = game.itemQ(i).getLevel();
         if(lev>5){lev=5;}
         elementQueue[i] = allGraphic[lev].clone();
-        elementQueue[i].x = 650-25*mod;
-        elementQueue[i].y = 550-(50)*(3-i)-50*mod;
+        elementQueue[i].x = 700-25*mod;
+        elementQueue[i].y = 550-60*(3-i)-50*mod;
         elementQueue[i].scaleX = 50*mod/128;
         elementQueue[i].scaleY = 50*mod/128;
         container.addChild(elementQueue[i]);
@@ -1027,10 +1028,18 @@ function updateQueue(container){
 //region GAME
 var game;
 var grid;
+var QueueContainer = [];
+var QueueBorder = [];
 var elementQueue = [];
 var turns;
 var pop;
 var goal;
+var rightBar;
+var rightBarBorder;
+var topBar;
+var topBarBorder;
+var bottomBar;
+var bottomBarBorder;
 
 function initGameScene(container) {
     
@@ -1042,8 +1051,43 @@ function initGameScene(container) {
     allGraphic[5] = loadImage("pop5");
     allGraphic[0] = loadImage("bolt");
     
+    rightBar = new createjs.Shape();
+    rightBar.graphics.beginFill("#A66").drawRect(565,5,230,590);
+    rightBarBorder = new createjs.Shape();
+    rightBarBorder.graphics.beginFill("#066").drawRect(560,0,240,600);
+    topBar = new createjs.Shape();
+    topBar.graphics.beginFill("#A66").drawRect(5,5,560,10);
+    topBarBorder = new createjs.Shape();
+    topBarBorder.graphics.beginFill("#066").drawRect(0,0,570,20);
+    bottomBar = new createjs.Shape();
+    bottomBar.graphics.beginFill("#A66").drawRect(5,585,560,10);
+    bottomBarBorder = new createjs.Shape();
+    bottomBarBorder.graphics.beginFill("#066").drawRect(0,580,570,20);
+    
+    QueueBorder[0] = new createjs.Shape();
+    QueueBorder[0].graphics.beginFill("#066").drawRect(645,265,110,110);
+    QueueContainer[0] = new createjs.Shape();
+    QueueContainer[0].graphics.beginFill("#A66").drawRect(650,270,100,100);
+    for(var i=1; i<4; i++){
+        QueueBorder[i] = new createjs.Shape();
+        QueueBorder[i].graphics.beginFill("#066").drawRect(670,320+60*i-5,60,60);
+        QueueContainer[i] = new createjs.Shape();
+        QueueContainer[i].graphics.beginFill("#A66").drawRect(675,320+60*i,50,50);
+    }
+    
     GameStates.Game.enable = function() {
         backgroundMusic.setSoundFromString("GamePlay",true);
+        
+        container.addChild(topBarBorder);
+        container.addChild(topBar);
+        container.addChild(bottomBarBorder);
+        container.addChild(bottomBar);
+        container.addChild(rightBarBorder);
+        container.addChild(rightBar);
+        for(var i=0; i<4; i++){
+            container.addChild(QueueBorder[i]);   
+            container.addChild(QueueContainer[i]);   
+        }
         
         game = new Game(new Coord(6,6));
         
@@ -1064,7 +1108,7 @@ function initGameScene(container) {
         
         updateQueue(container);
         
-        grid = new Grid(container, new Coord(6,6),new Coord(20,50),new Coord(500,500));
+        grid = new Grid(container, new Coord(6,6),new Coord(40,50),new Coord(500,500));
     };
     GameStates.Game.mouseDownEvent = function(e){
         e=e;
@@ -1092,9 +1136,11 @@ function initGameScene(container) {
                             if(!placeInfo.positions[i].isEqual(flooredIndex)){
                                 grid.clear(container,placeInfo.positions[i]);  
                             }
-                        }
-                        for(var j=0; j<placeInfo.levelBoost; j++){
-                            grid.upgrade(container,flooredIndex);
+                            else {
+                                for(var j=0; j<placeInfo.levelBoost; j++){
+                                    grid.upgrade(container,flooredIndex);
+                                }
+                            }
                         }
                     }
                     updateQueue(container);
