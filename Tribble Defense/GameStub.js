@@ -66,11 +66,6 @@ Coord.prototype.withinBox  = function(exclusiveBounds) { return this.x >= 0 && t
 /*
  * Hash table developed by Anthony Corbin
 //*/
-var hasher = function (value) {
-    return (typeof value) + ' ' + (value instanceof Object ? (value.__hash || (value.__hash = ++arguments.callee.current)) : value.toString());
-};
-hasher.current = 0;
-
 var HashTable = (function() {
 	function HashTable() {
 		this.pairs = [];
@@ -81,6 +76,12 @@ var HashTable = (function() {
 		this.key = key;
 		this.val = val;
 	}
+    
+    var hasher = function (value) {
+        return (typeof value) + ' ' + (value instanceof Object ? (value.__hash || (value.__hash = ++arguments.callee.current)) : value.toString());
+    };
+    hasher.current = 0;
+    
     HashTable.prototype.hashObject = hasher;
 	KeyValuePair.prototype.containsKey = function (key) { return this.key === key; };
 	KeyValuePair.prototype.containsVal = function (val) { return this.val === val; };
