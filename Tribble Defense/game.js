@@ -191,6 +191,7 @@ var manifest = [
     {src:"audio/StartScreen.mp3", id:"StartScreen"},
     {src:"images/SpeakerOff.png", id:"SpeakerOff"},
     {src:"images/Barrier.png", id:"Barrier"},
+    {src:"images/stars.png", id:"Stars"},
     {src:"images/Hazard/LightningBolt.png", id:"bolt"},
     {src:"images/Population/purplePop1.png", id:"pop1"},
     {src:"images/Population/purplePop2.png", id:"pop2"},
@@ -254,11 +255,15 @@ var backgroundMusic = {
 var spriteSheets = {
     buttons: null,
     barrier: null,
+    stars: null,
     makeButton: function() {
         return (new createjs.Sprite(this.buttons));
     },
     makeBarrier: function() {
         return (new createjs.Sprite(this.barrier));
+    },
+    makeStar: function() {
+        return (new createjs.Sprite(this.stars));
     },
     mainCharacter: null
 };
@@ -329,7 +334,7 @@ function loadFiles() {
 function initSprites() {
     var buttonSheet = new createjs.SpriteSheet({
         images: [queue.getResult("button")],
-        frames: {width: 188, height: 64, regX: 46, regY: 15},
+        frames: {width: 192, height: 81, regX: 96, regY: 40},
         animations: {
         playUp:   [0, 0, "playUp"],
         playOver: [1, 1, "playOver"],
@@ -350,6 +355,19 @@ function initSprites() {
     });
     spriteSheets.buttons = buttonSheet;
     //This takes the images loaded from the sprite sheet and breaks it into the individual frames. I cut and pasted the 'frames' parameter from the .js file created by Flash when I exported in easelJS format. I didn't cut and paste anything except 'frames' because I am using preloadJS to load all the images completely before running the game. That's what the queue.getResult is all about.
+    
+    var starSheet = new createjs.SpriteSheet({
+        images: [queue.getResult("Stars")],
+        frames: {width: 128, height: 128, regX: 64, regY: 64},
+        animations: {
+        empty:   [0, 0, "empty"],
+        quarter: [1, 1, "quarter"],
+        half: [2, 2, "half"],
+        quarter3:   [3, 3, "quarter3"],
+        full: [4, 4, "full"],
+        } 
+    });
+    spriteSheets.stars = starSheet;
 	
     
     spriteSheets.barrier = new createjs.SpriteSheet({
@@ -1016,7 +1034,7 @@ function updateQueue(container){
         var lev = game.itemQ(i).getLevel();
         if(lev>5){lev=5;}
         elementQueue[i] = allGraphic[lev].clone();
-        elementQueue[i].x = 700-25*mod;
+        elementQueue[i].x = 675-25*mod;
         elementQueue[i].y = 550-60*(3-i)-50*mod;
         elementQueue[i].scaleX = 50*mod/128;
         elementQueue[i].scaleY = 50*mod/128;
@@ -1032,6 +1050,7 @@ var QueueContainer = [];
 var QueueBorder = [];
 var elementQueue = [];
 var turns;
+var turnsLabel;
 var pop;
 var goal;
 var rightBar;
@@ -1040,6 +1059,8 @@ var topBar;
 var topBarBorder;
 var bottomBar;
 var bottomBarBorder;
+var leftBar;
+var stars = [];
 
 function initGameScene(container) {
     
@@ -1051,64 +1072,92 @@ function initGameScene(container) {
     allGraphic[5] = loadImage("pop5");
     allGraphic[0] = loadImage("bolt");
     
+    leftBar = new createjs.Shape();
+    leftBar.graphics.beginFill("#333").drawRect(0,0,5,600);
+    
     rightBar = new createjs.Shape();
-    rightBar.graphics.beginFill("#A66").drawRect(565,5,230,590);
+    rightBar.graphics.beginFill("#AAA").drawRect(565,5,230,590);
+    rightBar.alpha = 0.5;
     rightBarBorder = new createjs.Shape();
-    rightBarBorder.graphics.beginFill("#066").drawRect(560,0,240,600);
+rightBarBorder.graphics.setStrokeStyle(5,"round").beginStroke("#333").drawRect(565,5,230,590);
     topBar = new createjs.Shape();
-    topBar.graphics.beginFill("#A66").drawRect(5,5,560,10);
+    topBar.graphics.beginFill("#AAA").drawRect(5,5,560,30);
+    topBar.alpha = 0.5;
     topBarBorder = new createjs.Shape();
-    topBarBorder.graphics.beginFill("#066").drawRect(0,0,570,20);
+topBarBorder.graphics.setStrokeStyle(5,"round").beginStroke("#333").drawRect(2,2,560,34);
     bottomBar = new createjs.Shape();
-    bottomBar.graphics.beginFill("#A66").drawRect(5,585,560,10);
+    bottomBar.graphics.beginFill("#AAA").drawRect(5,565,560,30);
+    bottomBar.alpha = 0.5;
     bottomBarBorder = new createjs.Shape();
-    bottomBarBorder.graphics.beginFill("#066").drawRect(0,580,570,20);
+bottomBarBorder.graphics.setStrokeStyle(5,"round").beginStroke("#333").drawRect(2,563,560,34);
     
     QueueBorder[0] = new createjs.Shape();
-    QueueBorder[0].graphics.beginFill("#066").drawRect(645,265,110,110);
+QueueBorder[0].graphics.setStrokeStyle(5,"round").beginStroke("#333").drawRect(620,265,110,110);
     QueueContainer[0] = new createjs.Shape();
-    QueueContainer[0].graphics.beginFill("#A66").drawRect(650,270,100,100);
+    QueueContainer[0].graphics.beginFill("#AAA").drawRect(625,270,100,100);
+    QueueContainer[0].alpha = 0.5;
+    
     for(var i=1; i<4; i++){
         QueueBorder[i] = new createjs.Shape();
-        QueueBorder[i].graphics.beginFill("#066").drawRect(670,320+60*i-5,60,60);
+QueueBorder[i].graphics.setStrokeStyle(5,"round").beginStroke("#333").drawRect(645,320+60*i-5,60,60);
         QueueContainer[i] = new createjs.Shape();
-        QueueContainer[i].graphics.beginFill("#A66").drawRect(675,320+60*i,50,50);
+        QueueContainer[i].graphics.beginFill("#AAA").drawRect(650,320+60*i,50,50);
+        QueueContainer[i].alpha= 0.5;
+    }
+    
+    for(i=0; i<3; i++){
+        stars[i] = spriteSheets.makeStar();
+        stars[i].x = 615+i*60;
+        stars[i].y = 220-20*(i%2);
+        stars[i].scaleX = 0.6+0.2*(i%2);
+        stars[i].scaleY = 0.6+0.2*(i%2);
     }
     
     GameStates.Game.enable = function() {
         backgroundMusic.setSoundFromString("GamePlay",true);
         
+        container.addChild(leftBar);
         container.addChild(topBarBorder);
         container.addChild(topBar);
         container.addChild(bottomBarBorder);
         container.addChild(bottomBar);
         container.addChild(rightBarBorder);
         container.addChild(rightBar);
+        
         for(var i=0; i<4; i++){
             container.addChild(QueueBorder[i]);   
             container.addChild(QueueContainer[i]);   
         }
         
+        container.addChild(stars[0]);
+        container.addChild(stars[1]);
+        container.addChild(stars[2]);
+        
         game = new Game(new Coord(6,6));
         
-        turns = new createjs.Text("Turns: "+game.getTurnCount(), "16px Arial", "#FFF");
-        turns.x = 600;
-        turns.y = 30; 
+        turnsLabel = new createjs.Text("Turns: ", "italic 20px Orbitron", "#FFF");
+        turnsLabel.x = 580;
+        turnsLabel.y = 60; 
+        container.addChild(turnsLabel);
+        
+        turns = new createjs.Text(game.getTurnCount(), "italic 64px Orbitron", "#FFF");
+        turns.x = 660;
+        turns.y = 15; 
         container.addChild(turns);
         
-        pop = new createjs.Text("Pop " +game.getPopulation(), "12px Arial", "#FFF");
+        pop = new createjs.Text("Pop " +game.getPopulation(), "24px Quantico", "#FFF");
         pop.x = 600;
-        pop.y = 50; 
+        pop.y = 100; 
         container.addChild(pop);
         
-        goal = new createjs.Text(" / 80", "12px Arial", "#FFF");
-        goal.x = 650;
-        goal.y = 50; 
+        goal = new createjs.Text(" / 80", "24px Quantico", "#FFF");
+        goal.x = 680;
+        goal.y = 100; 
         container.addChild(goal);
         
         updateQueue(container);
         
-        grid = new Grid(container, new Coord(6,6),new Coord(40,50),new Coord(500,500));
+        grid = new Grid(container, new Coord(6,6),new Coord(30,50),new Coord(500,500));
     };
     GameStates.Game.mouseDownEvent = function(e){
         e=e;
@@ -1156,7 +1205,7 @@ function initGameScene(container) {
         }
     };
     GameStates.Game.update = function() {
-        turns.text="Turns: "+game.getTurnCount();
+        turns.text=game.getTurnCount();
         if(game.getTurnCount()===0){
             CurrentGameState=GameStates.GameOver;
         }
