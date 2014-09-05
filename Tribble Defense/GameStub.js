@@ -383,8 +383,8 @@ function Game(size) { // pass in Coord of size
     //endregion
     
     //for building map
-    this.setComboBoost = function(boost) { boost = boost; };
-    this.addSpawner = function(pos,spawner) { pos = pos; spawner = spawner;};
+    this.setComboBoost = function(boost) { this.ComboBoost = boost; };
+    this.addSpawner = function(spawner) { this.spawners.push(spawner);};
     this.getDims = function() { return size; };
 }
 
@@ -542,7 +542,6 @@ Game.prototype.update = function() {
     this.spawners.map(function(item) {
         var newHazard = item.update();
         if(newHazard !== null) {
-            
             this.hazardSpawnedEvent.callAll(newHazard.pos,newHazard);
         }
     });
