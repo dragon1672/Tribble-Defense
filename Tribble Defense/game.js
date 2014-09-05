@@ -110,14 +110,15 @@ var FPS = 30;
 //endregion
 
 //region functions
-    function stackButtons(buttons, padding) {
+    function stackButtons(buttons, padding, bottomPos) {
+        bottomPos = bottomPos || new Coord(stage.canvas.width/2,padding);
         var offset = stage.canvas.height - padding;
         buttons.reverse();
         buttons.map(function(item) {
             if(typeof(item) != 'undefined' && typeof item.getBounds === 'function') {
                 var pos = {
-                    x: stage.canvas.width / 2 - item.getBounds().width / 2,
-                    y: offset - item.getBounds().height / 2,
+                    x: bottomPos.x,
+                    y: offset-bottomPos.y,
                 };
 
                 offset -= item.getBounds().height + padding;
@@ -505,7 +506,7 @@ function init() {
         BTN.push(CreateButtonFromSprite(spriteSheets.makeButton(),"instruct",function() { CurrentGameState = GameStates.Instructions; }));
         BTN.push(CreateButtonFromSprite(spriteSheets.makeButton(),"credits", function() { CurrentGameState = GameStates.Credits;      }));
         
-        stackButtons(BTN,10);
+        stackButtons(BTN,10,new Coord(600,100));
         
         BTN.map(function(item) {
             GameStates.StartScreen.container.addChild(item);
@@ -1135,6 +1136,11 @@ QueueBorder[i].graphics.setStrokeStyle(5,"round").beginStroke("#333").drawRect(6
         
         game = new Game(new Coord(6,6));
         
+        game.itemQChangedEvent = function(event){
+            event = event;
+            updateQueue(container);
+        };
+        
         turnsLabel = new createjs.Text("Turns: ", "italic 20px Orbitron", "#FFF");
         turnsLabel.x = 580;
         turnsLabel.y = 60; 
@@ -1192,15 +1198,13 @@ QueueBorder[i].graphics.setStrokeStyle(5,"round").beginStroke("#333").drawRect(6
                             }
                         }
                     }
-                    updateQueue(container);
                     pop.text = "Pop " +game.getPopulation();
                 }
             }
             else{
                 var qeryInfo = game.QueryMove(flooredIndex,game.itemQ(0));
                 game.ApplyMove(flooredIndex,game.popFromQ(),qeryInfo);
-                grid.clear(container,flooredIndex); 
-                updateQueue(container);
+                grid.clear(container,flooredIndex);
             }
         }
     };
