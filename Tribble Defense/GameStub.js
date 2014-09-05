@@ -272,6 +272,10 @@ function Item(type) {
                this.strength === that.strength &&
                this.type === that.type;
     };
+    this.decreaseLevel = function() {
+        this.population -= this.population / this.getLevel();
+        this.setToLevel(this.getLevel()-1);
+    };
 }
 function Hazard(level) {
     var ret = new Item(ItemType.Hazard);
@@ -353,7 +357,17 @@ function Game(size) { // pass in Coord of size
     this.getDims = function() { return size; };
 }
 
-
+Game.prototype.addHazard = function(toAdd) {
+    for(var i=0;i<this.trackedHazards.length && toAdd !== null;i++) {
+        if(this.trackedHazards[i] === null) {
+            this.trackedHazards[i] = toAdd;
+            toAdd = null;
+        }
+    }
+    if(toAdd !== null) {
+        this.trackedHazards.push(toAdd);
+    }
+};
 Game.prototype.addItemToPool = function(item,count) {
     count = count || 1;
     for(var i = 0 ;i<count;i++) {
