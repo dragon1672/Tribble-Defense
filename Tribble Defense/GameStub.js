@@ -452,13 +452,14 @@ Game.prototype.ApplyMove     = function(pos,itemToPlace, preloadedQuery) {
         
         this.avalableItemPool.push(itemToPlace.duplicate());
         
+        var potato = this;
         if(preloadedQuery.valid) {
             preloadedQuery.cells.map(function(meCell) {
                 if(!meCell.pos.isEqual(pos)) {
                     itemToPlace.population += meCell.item.population;
                     var old = meCell.item;
                     meCell.item = null;
-                    this.itemChangedEvent.callAll(meCell.pos,old,null);
+                    potato.itemChangedEvent.callAll(meCell.pos,old,null);
                 }
             });
             itemToPlace.population += preloadedQuery.levelBoost * this.ComboBoost;
@@ -539,7 +540,7 @@ Game.prototype.update = function() {
             this.hazardSpawnedEvent.callAll(newHazard.pos,newHazard);
         }
     });
-    this.trackedHazards.map(function(item) {
+    this.trackedHazards.foreachInSet(function(item) {
         if(item === null) return;
         var oldPos = item.pos;
         item.pos = item.pos.add(item.direction);
