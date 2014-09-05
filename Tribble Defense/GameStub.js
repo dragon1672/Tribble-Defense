@@ -309,7 +309,7 @@ function Game(size) { // pass in Coord of size
     this.avalableItemPool = [];
     
     this.spawners = [];
-    this.trackedHazards = [];
+    this.trackedHazards = new HashSet();
     
     //region events
     
@@ -358,15 +358,10 @@ function Game(size) { // pass in Coord of size
 }
 
 Game.prototype.addHazard = function(toAdd) {
-    for(var i=0;i<this.trackedHazards.length && toAdd !== null;i++) {
-        if(this.trackedHazards[i] === null) {
-            this.trackedHazards[i] = toAdd;
-            toAdd = null;
-        }
-    }
-    if(toAdd !== null) {
-        this.trackedHazards.push(toAdd);
-    }
+    this.trackedHazards.add(toAdd);
+};
+Game.prototype.removeHazard = function(toKill) {
+    this.trackedHazards.remove(toKill);
 };
 Game.prototype.addItemToPool = function(item,count) {
     count = count || 1;
@@ -536,14 +531,38 @@ function Spawner(pos) {
 
 Game.prototype.update = function() {
     this.spawners.map(function(item) {
-        item.update();
+        var newHazard = item.update();
+        if(newHazard !== null) {
+            
+            this.hazardSpawnedEvent.callAll(newHazard.pos,newHazard);
+        }
+    });
+    this.trackedHazards.map(function(item) {
+        if(item === null) return;
+        var oldPos = item.pos;
+        item.pos = item.pos.add(item.direction);
+        this.hazardMovedEvent(oldPos,item.pos);
         var cell = this.getCell(item.pos);
         cell = new Cell();
-        if(cell.item !== null && cell.item.type === ItemType.Housing) {
+        if(cell !== null && cell.item !== null && cell.item.type === ItemType.Housing) {
             //hazard beats item
-            
-            //item beats hazard
-            
-        }
+            var changed = false;
+            while(item.getLevel() > 0 && cell.item.getLevel() > 0) {
+                item.decreaseLevel();
+                cell.item.decreaseLevel();
+                changed = true;
+            }
+            if(changed) {
+                if(cell.item.getLevel() === 0) {
+                    var oldItem = cell.item;
+                    cell.item = null;
+                    this.itemChangedEvent.callAll(oldItem.pos,oldItem,cell.item);
+                }
+                if(item.getLevel() === 0) {
+                    this.hazardRemovedEvent.callAll(item.pos,item);
+                    this.removeHazard(item);
+                }
+            }
+        } 
     });
 };
