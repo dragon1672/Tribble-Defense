@@ -75,12 +75,15 @@ var HashTable = (function() {
 		this.hash = hash;
 		this.key = key;
 		this.val = val;
+        this.markedForDel = false;
 	}
     
     var hasher = function (value) {
         return (typeof value) + ' ' + (value instanceof Object ? (value.__hash || (value.__hash = ++arguments.callee.current)) : value.toString());
     };
     hasher.current = 0;
+    
+    this.numOfActiveIterations = 0;
     
     HashTable.prototype.hashObject = hasher;
 	KeyValuePair.prototype.containsKey = function (key) { return this.key === key; };
@@ -104,14 +107,21 @@ var HashTable = (function() {
 		var i, hash;
 		if (this.containsKey(key)) {
 			hash = this.hashObject(key);
-			for (i = 0; i < this.orderedPairs.length; i++) {
-				if (this.orderedPairs[i] === this.pairs[hash]) {
-					this.orderedPairs.splice(i, 1);
-					this.pairs[hash] = null;
-					return;
-				}
-			}
-			throw new Error("contain returned true, but key not found");
+            this.pairs[hash].markedForDel = true;
+            var del = function del() {
+                if(this.numOfActiveIterations > 0) {
+                    setTimeout(del,10);
+                    return;
+                }
+                for (i = 0; i < this.orderedPairs.length; i++) {
+                    if (this.orderedPairs[i] === this.pairs[hash]) {
+                        this.orderedPairs.splice(i, 1);
+                        this.pairs[hash] = null;
+                        return;
+                    }
+                }
+                throw new Error("contain returned true, but key not found");
+            };
 		}
 	};
 	HashTable.prototype.containsKey = function (key) {
@@ -129,9 +139,13 @@ var HashTable = (function() {
 	HashTable.prototype.size = function () { return this.orderedPairs.length; };
 	//pass in function(key,val)
 	HashTable.prototype.foreachInSet = function (theirFunction) {
+        this.numOfActiveIterations++;
 		this.orderedPairs.map(function (item) {
-			theirFunction(item.key, item.val);
+            if(!item.markedForDel) {
+                theirFunction(item.key, item.val);
+            }
 		});
+        this.numOfActiveIterations--;
 	};
 	return HashTable;
 }());
