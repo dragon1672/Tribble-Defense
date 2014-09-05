@@ -290,6 +290,7 @@ function Game(size) { // pass in Coord of size
     this.avalableItemPool = [];
     
     this.spawners = [];
+    this.trackedHazards = [];
     
     //region events
     
@@ -480,6 +481,11 @@ Game.prototype.getPopulation = function() {
 function Spawner(pos) {
     this.pos = pos;
     this.directions = [];
+    //power of hazard
+    this.powLow = 5;
+    this.posHigh = 6;
+    
+    //how often hazards are spawn
     this.freqLow = 5;
     this.freqHigh = 10;
     this.turnsTillNextSpawn = Rand(this.freqLow,this.freqHigh); // will be updated based off freq
@@ -488,7 +494,13 @@ function Spawner(pos) {
         this.turnsTillNextSpawn--;
         if(this.turnsTillNextSpawn < 0) {
             this.turnsTillNextSpawn = Rand(this.freqLow,this.freqHigh);
+            //spawn
+            var ret = new Hazard();
+            ret.direction = RandomElement(this.directions);
+            ret.setToLevel(Rand(this.powLow,this.powHigh));
+            return ret;
         }
+        return null;
     };
 }
 
