@@ -66,7 +66,8 @@ Coord.prototype.withinBox  = function(exclusiveBounds) { return this.x >= 0 && t
 /*
  * Hash table developed by Anthony Corbin
 //*/
-var HashTable = (function() {
+var HashTable, HashMap;
+ HashTable = HashMap = (function() {
 	function HashTable() {
 		this.pairs = [];
 		this.orderedPairs = [];
@@ -566,3 +567,57 @@ Game.prototype.update = function() {
         } 
     });
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//message ticker
+
+
+//make a pool of possible message to poll from when Q is empty
+
+var MessageTicker = (function(){
+    function MessageTicker() {
+        this.characterQ = [];
+        this.dilimiter = " ";
+    }
+    MessageTicker.prototype.addMessage = function(stringMsg) {
+        var i;
+        for(i = 0;i<stringMsg.length;i++) {
+            this.characterQ.push(stringMsg.charAt(i));
+        }
+        for(i = 0;i<this.dilimiter.length;i++) {
+            this.characterQ.push(stringMsg.charAt(i));
+        }
+    };
+    MessageTicker.prototype.getString = function(length) {
+        length = length || 100;
+        var ret = "";
+        for(var i = 0;i<length && i< this.characterQ.length;i++) {
+            ret += this.characterQ[i];
+        }
+    };
+    MessageTicker.prototype.update = function() {
+        if(this.characterQ.length > 0) {
+            this.characterQ.shift();
+        }
+    };
+}());
