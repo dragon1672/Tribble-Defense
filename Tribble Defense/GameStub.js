@@ -284,8 +284,9 @@ function Hazard(level) {
     return ret;
 }
 var GameEvent = (function(){
-    function GameEvent() {}
-    GameEvent.calls = new HashSet();
+    function GameEvent() {
+        this.calls = new HashSet();
+    }
     GameEvent.prototype.callAll = function(a,b,c,d,e,f,g) {
         this.calls.foreachInSet(function(item) { item(a,b,c,d,e,f,g); });
     };
