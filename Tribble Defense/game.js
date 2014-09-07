@@ -180,15 +180,16 @@ var FPS = 30;
 var manifest = [
     {src:"audio/Loading.mp3", id:"Loading"},
     {src:"images/Static/Title.png", id:"title"},
+    {src:"images/Static/LevelSelection.png", id:"levelSelect"},
+    {src:"images/Static/Instructions.png", id:"instructions"},
+    {src:"images/Static/GameOverPurplePlanet.png", id:"gameover"},
+    {src:"images/Static/Credits.png", id:"credits"},
     {src:"images/Terrain/BackgroundBasePurple.png", id:"purBackground"},
     {src:"images/Terrain/BackgroundBaseBlue.png", id:"bluBackground"},
     {src:"images/Terrain/pathOpenPurple.png", id:"purPath"},
     {src:"images/Terrain/pathOpenBlue.png", id:"bluPath"},
     {src:"audio/GameOver.mp3", id:"Failure"},
-    {src:"images/Static/Instructions.png", id:"instructions"},
-    {src:"images/Static/Credits.png", id:"credits"},
     {src:"audio/GamePlay.mp3", id:"GamePlay"},
-    {src:"images/Static/GameOverPurplePlanet.png", id:"gameover"},
     {src:"images/Static/purpleRockBlock.png", id:"purRock"},
     {src:"images/Static/blueRockBlock.png", id:"bluRock"},
     {src:"images/Static/purpleTreeBlock.png", id:"purTree"},
@@ -197,7 +198,6 @@ var manifest = [
     {src:"images/SpeakerOn.png", id:"SpeakerOn"},
     {src:"audio/StartScreen.mp3", id:"StartScreen"},
     {src:"images/SpeakerOff.png", id:"SpeakerOff"},
-    {src:"images/Barrier.png", id:"Barrier"},
     {src:"images/stars.png", id:"Stars"},
     {src:"images/Hazard/LightningBolt.png", id:"bolt"},
     {src:"images/Hazard/tsunamiBlock.png", id:"tsunami"},
@@ -388,15 +388,6 @@ function initSprites() {
         } 
     });
     spriteSheets.stars = starSheet;
-	
-    
-    spriteSheets.barrier = new createjs.SpriteSheet({
-        images: [queue.getResult("Barrier")],
-        frames: [[0,0,185,184,0,-4.4,6.7],[185,0,185,184,0,-4.4,6.7],[0,184,185,184,0,-4.4,6.7],[185,184,185,184,0,-4.4,6.7]],
-        animations: {
-            pulse:   [0, 3, "pulse",0.5]
-        }     
-    });
 }
 
 //endregion
@@ -522,6 +513,7 @@ function init() {
         var BTN = [];
         BTN.push(CreateButtonFromSprite(spriteSheets.makeButton(),"play",    function() { CurrentGameState = GameStates.Game;         }));
         BTN.push(CreateButtonFromSprite(spriteSheets.makeButton(),"instruct",function() { CurrentGameState = GameStates.Instructions; }));
+        BTN.push(CreateButtonFromSprite(spriteSheets.makeButton(),"level",    function() { CurrentGameState.container.addChild(loadImage("levelSelect"));         }));
         BTN.push(CreateButtonFromSprite(spriteSheets.makeButton(),"credits", function() { CurrentGameState = GameStates.Credits;      }));
         
         stackButtons(BTN,10,new Coord(600,100));
