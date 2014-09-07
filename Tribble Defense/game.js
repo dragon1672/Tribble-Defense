@@ -1291,7 +1291,7 @@ var turns;
 var turnsLabel;
 var pop;
 var goal;
-var goalAmount = 80;
+var goalAmount;
 var rightBar;
 var rightBarBorder;
 var topBar;
@@ -1377,10 +1377,13 @@ QueueBorder[i].graphics.setStrokeStyle(5,"round").beginStroke("#333").drawRect(6
         });
         
 //endregion
+//region Game Setup
+        goalAmount = 80;
         game.addSpawner(new Spawner(5,8,3,5));
         game.spawners[0].pos = new Coord(4,4);
         game.spawners[0].directions[0] = new Coord(0,-1);
         game.spawners[0].directions[1] = new Coord(-1,0);
+//endregion
 //region UI setup
         turnsLabel = new createjs.Text("Turns: ", "italic 20px Orbitron", "#FFF");
         turnsLabel.x = 580;
@@ -1423,7 +1426,7 @@ QueueBorder[i].graphics.setStrokeStyle(5,"round").beginStroke("#333").drawRect(6
         
         updateQueue(container);
         
-        grid = new Grid(container, new Coord(6,6),new Coord(30,50),new Coord(500,500));
+        grid = new Grid(container, game.getDims(),new Coord(30,50),new Coord(500,500));
 //endregion
     };
     GameStates.Game.mouseDownEvent = function(e){
