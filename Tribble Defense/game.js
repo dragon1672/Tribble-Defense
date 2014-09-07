@@ -204,6 +204,10 @@ var manifest = [
     {src:"images/Hazard/mantisBlock.png", id:"mantis"},
     {src:"images/Hazard/fireBlock.png", id:"fire"},
     {src:"images/Hazard/monsterBlock.png", id:"creeper"},
+    {src:"images/Hazard/tsunamiSpawner.png", id:"tsunamiSpawn"},
+    {src:"images/Hazard/mantisSpawner.png", id:"mantisSpawn"},
+    {src:"images/Hazard/fireSpawner.png", id:"fireSpawn"},
+    {src:"images/Hazard/monsterSpawner.png", id:"creeperSpawn"},
     {src:"images/Population/purplePop1.png", id:"purPop1"},
     {src:"images/Population/purplePop2.png", id:"purPop2"},
     {src:"images/Population/purplePop3.png", id:"purPop3"},
@@ -1061,10 +1065,15 @@ var Game = (function() {
 
         return preloadedQuery;
     };
-    //pass x,y or pos
+    
+    Game.prototype.inBounds      = function(x,y) {
+        var pos = y === undefined ? x : new Coord(x,y);
+        return pos.withinBox(this.getDims());
+    };
     Game.prototype.getCell       = function(x,y) {
         var pos = y === undefined ? x : new Coord(x,y);
         if(pos.withinBox(this.getDims())) { return this.Grid[pos.x][pos.y]; }
+        if(this.inBounds(pos)) { return this.Grid[pos.x][pos.y]; }
         return null;
     };
     Game.prototype.getCellNeighbors = function(cellPos) {
@@ -1083,6 +1092,51 @@ var Game = (function() {
         });
         return ret;
     };
+    
+    Game.prototype.withinVertBounds = function(pos) {
+        return 0 <= pos.y && pos.y <= this.getDims().y;
+    };
+    Game.prototype.withinHorzBounds = function(pos) {
+        return 0 <= pos.x && pos.x <= this.getDims().x;
+    };
+
+    function clamp(src,low,high) {
+        src = Math.max(src,low);
+        src = Math.min(src,high);
+        return src;
+    }
+    function clampVec(src,low,high) {
+        var ret = new Coord();
+        ret.x = clamp(src.x,low,high);
+        ret.y = clamp(src.y,low,high);
+        return ret;
+    }
+    
+    Game.prototype.movingInBounds = function(pos,dir) {
+        var valid = this.inBounds(pos);
+        if(!valid) {
+            if(this.withinHorzBounds(pos)) {
+                valid = dir.y > 0 && pos.y < 0 ||
+                        dir.y < 0 && pos.y > 0;
+            } else if(this.withinVertBounds(pos)) {
+                valid = dir.x > 0 && pos.x < 0 ||
+                        dir.x < 0 && pos.x > 0;
+            } else {
+                //get nearestCorner
+                var nearestCornerPos;
+                var corners = [new Coord(0,0), new Coord(this.getDims().x,0),new Coord(0,this.getDims().y),new Coord(this.getDims())];
+                nearestCornerPos = SingleSelect(corners,function(a,b) {
+                    return pos.sub(a).lengthSquared() < pos.sub(b).lengthSquared() ? a : b;
+                });
+                //complete
+                var diff = clampVec(nearestCornerPos.sub(pos),-1,1);
+                return diff.isEqual(clampVec(dir,-1,1));
+            }
+        }
+        return valid;
+    };
+    
+    
     
     Game.prototype.update = function() {
         var potato = this;
@@ -1108,7 +1162,7 @@ var Game = (function() {
                 }
             }
             item.decreaseLevel();
-            if(item.getLevel() <= 0) {
+            if(item.getLevel() <= 0 || !this.movingInBounds(item.pos,item.direction)) {
                 potato.hazardRemovedEvent.callAll(item.pos,item);
                 potato.removeHazard(item);
             }
@@ -1179,14 +1233,17 @@ var MessageTicker = (function(){
     };
 }());
 //endregion
+
 //region HUDOBJECT
 var allGraphic = [];
 var numWorlds = 1;
 var numStatics = 2;
 var numElements = 6;
+var numHazards = 2;
 var staticBuf = numWorlds;
 var elementBuf = numWorlds+numStatics;
-var hazardBuf = numWorlds+numStatics+numElements;
+var spawnerBuf = numWorlds+numStatics+numElements;
+var hazardBuf = numWorlds+numStatics+numElements+numHazards;
 
 function Square(pos,dim){
     this.pos = pos;
@@ -1210,7 +1267,7 @@ function Square(pos,dim){
 function Grid(container, cells, pos, dim){
     this.dim = dim;
     this.pos = pos;
-    this.cells = new Coord(cells.y,cells.y);
+    this.cells = cells;
     this.squares = [];
     for(var i=0; i<cells.x; i++){
         this.squares[i] = [];
@@ -1234,11 +1291,24 @@ function Grid(container, cells, pos, dim){
         this.squares[i.x][i.y].changeItem(container,type+staticBuf);
     };
     
+    this.placeSpawner = function(container,i,haz){
+        this.squares[i.x][i.y].changeItem(container,haz+spawnerBuf);
+    };
+    
     this.clear = function(container,i){
         this.squares[i.x][i.y].changeItem(container,0);
     };
     this.placeHazard = function(container,i,haz){
         this.squares[i.x][i.y].changeItem(container,haz+hazardBuf);
+    };
+    
+    this.randomStatic = function(container,amount){
+        for(var i=0; i<amount; i++){
+            var rx = Math.floor(Math.random() * this.cells.x);
+            var ry = Math.floor(Math.random() * this.cells.y);
+            var rtype = Math.floor(Math.random() * numStatics);
+            this.placeStatic(container,new Coord(rx,ry),rtype);
+        }
     };
 }
 
@@ -1272,6 +1342,7 @@ function updateStars(ratio){
     if(ratio>1.375)stars[2].gotoAndStop("quarter3");
     if(ratio>1.5  )stars[2].gotoAndStop("full");
 }
+
 //endregion
 
 //region GAME
@@ -1307,8 +1378,10 @@ function initGameScene(container) {
         allGraphic[6] = loadImage("purPop3");
         allGraphic[7] = loadImage("purPop4");
         allGraphic[8] = loadImage("purPop5");
-        allGraphic[9] = loadImage("mantis");
-        allGraphic[10] = loadImage("fire");
+        allGraphic[9] = loadImage("mantisSpawn");
+        allGraphic[10] = loadImage("fireSpawn");
+        allGraphic[11] = loadImage("mantis");
+        allGraphic[12] = loadImage("fire");
         container.addChild(loadImage("purBackground"));
     }
     else if(world==2){
@@ -1321,8 +1394,10 @@ function initGameScene(container) {
         allGraphic[6] = loadImage("bluPop3");
         allGraphic[7] = loadImage("bluPop4");
         allGraphic[8] = loadImage("bluPop5");
-        allGraphic[9] = loadImage("creeper");
-        allGraphic[10] = loadImage("tsunami");
+        allGraphic[9] = loadImage("creeperSpawn");
+        allGraphic[10] = loadImage("tsunamiSpawn");
+        allGraphic[11] = loadImage("creeper");
+        allGraphic[12] = loadImage("tsunami");
         container.addChild(loadImage("bluBackground"));
     }
     
@@ -1448,6 +1523,14 @@ QueueBorder[i].graphics.setStrokeStyle(5,"round").beginStroke("#333").drawRect(6
         updateQueue(container);
         
         grid = new Grid(container, game.getDims(),new Coord(30,50),new Coord(500,500));
+        
+        grid.randomStatic(container,3);
+        
+        for(i=0; i<game.spawners.length; i++){
+            if(game.spawners[i].pos.withinBox(game.getDims())){
+                grid.placeSpawner(container,game.spawners[i].pos,0);   
+            }
+        }
 //endregion
     };
     
