@@ -713,167 +713,6 @@ var HashSet = (function() {
 })();
 
 //endregion
-//region hasy
-
-/*
- * Hash table developed by Anthony Corbin
-//*/
-var HashTable, HashMap;
- HashTable = HashMap = (function() {
-	function HashTable() {
-		this.pairs = [];
-		this.orderedPairs = [];
-	}
-	function KeyValuePair(hash, key, val) {
-		this.hash = hash;
-		this.key = key;
-		this.val = val;
-        this.markedForDel = false;
-	}
-    
-    var hasher = function (value) {
-        return (typeof value) + ' ' + (value instanceof Object ? (value.__hash || (value.__hash = ++arguments.callee.current)) : value.toString());
-    };
-    hasher.current = 0;
-    
-    this.numOfActiveIterations = 0;
-    
-    HashTable.prototype.hashObject = hasher;
-	KeyValuePair.prototype.containsKey = function (key) { return this.key === key; };
-	KeyValuePair.prototype.containsVal = function (val) { return this.val === val; };
-	HashTable.prototype.add = function (newKey, newVal) {
-		var hash = this.hashObject(newKey);
-		if (!this.containsKey(newKey)) {
-			this.pairs[hash] = new KeyValuePair(hash, newKey, newVal);
-			this.orderedPairs.push(this.pairs[hash]);
-		} else {
-			this.pairs[hash].val = newVal;
-		}
-	};
-	HashTable.prototype.put  = this.add;
-	HashTable.prototype.get = function (key) {
-		var hash = this.hashObject(key);
-		if (this.pairs[hash] !== null) { return this.pairs[hash].val; }
-		return null;
-	};
-	HashTable.prototype.remove = function (key) {
-		var i, hash;
-		if (this.containsKey(key)) {
-			hash = this.hashObject(key);
-            this.pairs[hash].markedForDel = true;
-            var del = function del() {
-                if(this.numOfActiveIterations > 0) {
-                    setTimeout(del,10);
-                    return;
-                }
-                for (i = 0; i < this.orderedPairs.length; i++) {
-                    if (this.orderedPairs[i] === this.pairs[hash]) {
-                        this.orderedPairs.splice(i, 1);
-                        this.pairs[hash] = null;
-                        return;
-                    }
-                }
-                throw new Error("contain returned true, but key not found");
-            };
-		}
-	};
-	HashTable.prototype.containsKey = function (key) {
-		var hash = this.hashObject(key);
-		return (this.pairs[hash] && (this.pairs[hash] instanceof KeyValuePair)) ? true : false;
-	};
-	HashTable.prototype.containsValue = function (val) {
-		var ret = false;
-		this.orderedPairs.map(function (item) {
-			ret = ret || item.val === val;
-		});
-		return ret;
-	};
-	HashTable.prototype.isEmpty = function () { return this.size() === 0; };
-	HashTable.prototype.size = function () { return this.orderedPairs.length; };
-	//pass in function(key,val)
-	HashTable.prototype.foreachInSet = function (theirFunction) {
-        this.numOfActiveIterations++;
-		this.orderedPairs.map(function (item) {
-            if(!item.markedForDel) {
-                theirFunction(item.key, item.val);
-            }
-		});
-        this.numOfActiveIterations--;
-	};
-	return HashTable;
-}());
-
-/*
- * Hash Set developed by Anthony Corbin
-//*/
-var HashSet = (function() {
-	function HashSet() {
-		this.myTable = new HashTable();
-	}
-	HashSet.prototype.add      = function (val)      { return this.myTable.add(val, true);       };
-	HashSet.prototype.addAll   = function (vals)     { var potato = this; vals.map(function(item) { potato.myTable.add(item,true); }); };
-	HashSet.prototype.contains = function (toCheck)  { return this.myTable.containsKey(toCheck); };
-	HashSet.prototype.remove   = function (toRemove) { return this.myTable.remove(toRemove);     };
-	HashSet.prototype.size     = function ()         { return this.myTable.size(); };
-    
-    HashSet.prototype.cross = function (that) {
-		var ret = new HashSet();
-		this.foreachInSet(function (a) {
-            that.foreachInSet(function (b) {
-                var toAdd = {
-                    0: a,
-                    1: b,
-                };
-                ret.add(toAdd);
-            });
-        });
-		return ret;
-	};
-	HashSet.prototype.union = function (that) {
-		var ret = new HashSet();
-		this.foreachInSet(function (item) { ret.add(item); });
-		that.foreachInSet(function (item) { ret.add(item); });
-		return ret;
-	};
-	HashSet.prototype.join  = function (that) {
-		var ret = new HashSet();
-		this.myTable.foreachInSet(function (key, val) {
-			if (that.contains(key)) { ret.add(key); }
-		});
-		return ret;
-	};
-    HashSet.prototype.removeSet = function (that) {
-        that.foreachInSet(function(item) {
-            this.remove(item); 
-        });
-	};
-    HashSet.prototype.isEqual   = function (that) {
-		return this.isSubsetOf(that) && that.isSuperSet(this);
-	};
-    HashSet.prototype.isSubSet  = function (that) {
-		var ret = true;
-		this.myTable.foreachInSet(function (item) {
-            ret = ret && that.contains(item);
-		});
-		return ret;
-	};
-    HashSet.prototype.isSuperSet   = function (that) {
-        return that.isSubSet(this);
-	};
-	HashSet.prototype.foreachInSet = function (theirFunction) {
-		return this.myTable.foreachInSet(function(key,val) { theirFunction(key); });
-	};
-    HashSet.prototype.toList = function () {
-        var ret = [];
-		this.foreachInSet(function (item) {
-            ret.push(item);
-		});
-        return ret;
-	};
-    return HashSet;
-})();
-
-//endregion
 
 //region classes
 var ItemType = { // enum
@@ -951,9 +790,36 @@ var GameEvent = (function(){
     return GameEvent;
 }());
 
+function Spawner(pos) {
+    this.pos = pos;
+    this.directions = [];
+    //power of hazard
+    this.powLow = 5;
+    this.posHigh = 6;
+    
+    //how often hazards are spawn
+    this.freqLow = 5;
+    this.freqHigh = 10;
+    this.turnsTillNextSpawn = Rand(this.freqLow,this.freqHigh); // will be updated based off freq
+    //will be changed 
+    this.updateTurns = function() {
+        this.turnsTillNextSpawn--;
+        if(this.turnsTillNextSpawn < 0) {
+            this.turnsTillNextSpawn = Rand(this.freqLow,this.freqHigh);
+            //spawn
+            var ret = new Hazard();
+            ret.direction = RandomElement(this.directions);
+            ret.setToLevel(Rand(this.powLow,this.powHigh));
+            return ret;
+        }
+        return null;
+    };
+}
+
 
 //endregion
 
+//region Game
 function Game(size) { // pass in Coord of size
     
     this.size = size;
@@ -1116,7 +982,6 @@ Game.prototype.ApplyMove     = function(pos,itemToPlace, preloadedQuery) {
             });
             itemToPlace.population += preloadedQuery.levelBoost * this.ComboBoost;
             itemToPlace.setToLevel(itemToPlace.getLevel()+preloadedQuery.levelBoost);
-            this.populationChangedEvent.callAll();
         }
         var old = thisCell.item;
         thisCell.item = itemToPlace;
@@ -1132,6 +997,8 @@ Game.prototype.ApplyMove     = function(pos,itemToPlace, preloadedQuery) {
 
     this.turns--;
     this.update();
+    
+    this.populationChangedEvent.callAll();
 
     return preloadedQuery;
 };
@@ -1157,31 +1024,7 @@ Game.prototype.getPopulation = function() {
 };
 
 
-function Spawner(pos) {
-    this.pos = pos;
-    this.directions = [];
-    //power of hazard
-    this.powLow = 5;
-    this.posHigh = 6;
-    
-    //how often hazards are spawn
-    this.freqLow = 5;
-    this.freqHigh = 10;
-    this.turnsTillNextSpawn = Rand(this.freqLow,this.freqHigh); // will be updated based off freq
-    //will be changed 
-    this.updateTurns = function() {
-        this.turnsTillNextSpawn--;
-        if(this.turnsTillNextSpawn < 0) {
-            this.turnsTillNextSpawn = Rand(this.freqLow,this.freqHigh);
-            //spawn
-            var ret = new Hazard();
-            ret.direction = RandomElement(this.directions);
-            ret.setToLevel(Rand(this.powLow,this.powHigh));
-            return ret;
-        }
-        return null;
-    };
-}
+
 
 
 Game.prototype.update = function() {
@@ -1225,7 +1068,7 @@ Game.prototype.update = function() {
 
 
 
-
+//endregion
 
 
 
@@ -1326,6 +1169,8 @@ function Grid(container, cells, pos, dim){
     this.place = function(container,i,lev){
         if(this.squares[i.x][i.y].isPlaceable===false){return false;}
         this.squares[i.x][i.y].isPlaceable=false;
+        if(lev<0)lev=0;
+        if(lev>5)lev=5;
         this.squares[i.x][i.y].level = lev;
         this.squares[i.x][i.y].item = allGraphic[lev].clone();
             var spos = new Coord(i.x*(dim.x/cells.x)+pos.x,i.y*(dim.y/cells.y)+pos.y);
@@ -1367,6 +1212,21 @@ function updateQueue(container){
         container.addChild(elementQueue[i]);
     }
 }
+
+function updateStars(ratio){  
+    if(ratio>0.125)stars[0].gotoAndStop("quarter");
+    if(ratio>0.25 )stars[0].gotoAndStop("half");
+    if(ratio>0.375)stars[0].gotoAndStop("quarter3");
+    if(ratio>0.5  )stars[0].gotoAndStop("full");
+    if(ratio>0.625)stars[1].gotoAndStop("quarter");
+    if(ratio>0.75 )stars[1].gotoAndStop("half");
+    if(ratio>0.875)stars[1].gotoAndStop("quarter3");
+    if(ratio>1.0  )stars[1].gotoAndStop("full");
+    if(ratio>1.125)stars[2].gotoAndStop("quarter");
+    if(ratio>1.25 )stars[2].gotoAndStop("half");
+    if(ratio>1.375)stars[2].gotoAndStop("quarter3");
+    if(ratio>1.5  )stars[2].gotoAndStop("full");
+}
 //endregion
 
 //region GAME
@@ -1379,6 +1239,7 @@ var turns;
 var turnsLabel;
 var pop;
 var goal;
+var goalAmount = 80;
 var rightBar;
 var rightBarBorder;
 var topBar;
@@ -1389,7 +1250,7 @@ var leftBar;
 var stars = [];
 
 function initGameScene(container) {
-//region UI Init
+//region UI init
     terrainSprite = loadImage("path");
     allGraphic[1] = loadImage("pop1");
     allGraphic[2] = loadImage("pop2");
@@ -1442,23 +1303,32 @@ QueueBorder[i].graphics.setStrokeStyle(5,"round").beginStroke("#333").drawRect(6
     
     GameStates.Game.enable = function() {
         
-//region Game Events
         game = new Game(new Coord(6,6));
-        
+//region Game Events
         game.itemQChangedEvent.addCallBack(function(e){
             e = e;
             updateQueue(container);
         });
-        
         game.populationChangedEvent.addCallBack(function(e){
             e=e;
-            console.log(game.getPopulation());
-            pop.text = "Pop " +game.getPopulation();
+            var popul = game.getPopulation();
+            pop.text = "Pop " + popul;
+            updateStars(popul/goalAmount);
         });
-        
+        game.itemChangedEvent.addCallBack(function(pos,oldItem,newItem){
+            if(oldItem!==null){grid.clear(container,pos);}
+            if(newItem!==null){grid.place(container,pos,newItem.getLevel());}
+        });
+        game.hazardSpawnedEvent.addCallBack(function(pos,hazard){
+            
+        });
 //endregion
-        
 //region UI setup
+        turnsLabel = new createjs.Text("Turns: ", "italic 20px Orbitron", "#FFF");
+        turnsLabel.x = 580;
+        turnsLabel.y = 60; 
+        container.addChild(turnsLabel);
+        
         backgroundMusic.setSoundFromString("GamePlay",true);
         
         container.addChild(leftBar);
@@ -1478,11 +1348,6 @@ QueueBorder[i].graphics.setStrokeStyle(5,"round").beginStroke("#333").drawRect(6
         container.addChild(stars[1]);
         container.addChild(stars[2]);
         
-        turnsLabel = new createjs.Text("Turns: ", "italic 20px Orbitron", "#FFF");
-        turnsLabel.x = 580;
-        turnsLabel.y = 60; 
-        container.addChild(turnsLabel);
-        
         turns = new createjs.Text(game.getTurnCount(), "italic 64px Orbitron", "#FFF");
         turns.x = 660;
         turns.y = 15; 
@@ -1493,7 +1358,7 @@ QueueBorder[i].graphics.setStrokeStyle(5,"round").beginStroke("#333").drawRect(6
         pop.y = 100; 
         container.addChild(pop);
         
-        goal = new createjs.Text(" / 80", "24px Quantico", "#FFF");
+        goal = new createjs.Text(" / "+ goalAmount, "24px Quantico", "#FFF");
         goal.x = 680;
         goal.y = 100; 
         container.addChild(goal);
@@ -1520,23 +1385,7 @@ QueueBorder[i].graphics.setStrokeStyle(5,"round").beginStroke("#333").drawRect(6
                 var upcomingLevel = game.itemQ(0).getLevel();
                 if(upcomingLevel>5){upcomingLevel=5;}
                 var queryInfo = game.QueryMove(flooredIndex,game.itemQ(0));
-                if(!queryInfo.alreadyOccupied){
-                    var placeInfo = game.ApplyMove(flooredIndex);
-                    grid.place(container,flooredIndex,upcomingLevel);
-                    if(placeInfo.valid){
-                        for(var i=0; i<placeInfo.positions.length; i++)
-                        {
-                            if(!placeInfo.positions[i].isEqual(flooredIndex)){
-                                grid.clear(container,placeInfo.positions[i]);  
-                            }
-                            else {
-                                for(var j=0; j<placeInfo.levelBoost; j++){
-                                    grid.upgrade(container,flooredIndex);
-                                }
-                            }
-                        }
-                    }
-                }
+                game.ApplyMove(flooredIndex,game.popFromQ(),queryInfo);
             }
             else{
                 var qeryInfo = game.QueryMove(flooredIndex,game.itemQ(0));
