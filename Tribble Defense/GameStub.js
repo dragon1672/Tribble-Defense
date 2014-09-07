@@ -357,8 +357,10 @@ function Spawner(freqLow,freqHigh, powerLow, powerHigh) {
 
 //region Game
 var Game = (function() {
-    function Game(size) {
-        this.size = size;
+    //pass x,y or size
+    function Game(x,y) {
+        x = x || new Coord(5,5);
+        this.size = y === undefined ? x : new Coord(x,y);
         this.turns = 42;
         this.Grid = [];
         this.ComboBoost = 3;
@@ -398,9 +400,9 @@ var Game = (function() {
         this.nextItemList = [];
 
         //init grid
-        for(i=0;i<size.x;i++) {
+        for(i=0;i<this.size.x;i++) {
             this.Grid[i] = [];
-            for(var j=0;j<size.y;j++) {
+            for(var j=0;j<this.size.y;j++) {
                 this.Grid[i][j] = new Cell(new Coord(i,j));
             }
         }
@@ -536,7 +538,9 @@ var Game = (function() {
 
         return preloadedQuery;
     };
-    Game.prototype.getCell       = function(pos) {
+    //pass x,y or pos
+    Game.prototype.getCell       = function(x,y) {
+        var pos = y === undefined ? x : new Coord(x,y);
         if(pos.withinBox(this.getDims())) { return this.Grid[pos.x][pos.y]; }
         return null;
     };
