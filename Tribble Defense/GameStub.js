@@ -322,16 +322,20 @@ var GameEvent = (function(){
     return GameEvent;
 }());
 
-function Spawner(pos) {
-    this.pos = pos;
+function Spawner(freqLow,freqHigh, powerLow, powerHigh) {
+    freqLow   = freqLow   || 5;
+    freqHigh  = freqHigh  || 10;
+    powerLow  = powerLow  || 3;
+    powerHigh = powerHigh || 4;
+    this.pos = new Coord();
     this.directions = [];
     //power of hazard
-    this.powLow = 5;
-    this.powHigh = 6;
+    this.powLow = powerLow;
+    this.powHigh = powerHigh;
     
     //how often hazards are spawn
-    this.freqLow = 5;
-    this.freqHigh = 10;
+    this.freqLow = freqLow;
+    this.freqHigh = freqHigh;
     this.turnsTillNextSpawn = Rand(this.freqLow,this.freqHigh); // will be updated based off freq
     //will be changed 
     this.updateTurns = function() {
