@@ -759,7 +759,6 @@ function Query(valid) {
 }
 
 function Item(type) {
-    this.update = function () {};
     this.population = 0;
     this.direction = new Coord();
     this.strength = 0;
@@ -791,9 +790,31 @@ function Item(type) {
     };
 }
 function Hazard(level) {
-    var ret = new Item(ItemType.Hazard);
-    ret.setToLevel(level);
-    return ret;
+    this.pos = new Coord();
+    this.direction = new Coord();
+    this.level = level;
+    this.getLevel = function() {
+        return this.level;
+    };
+    this.setToLevel = function(level) {
+        this.level = level;
+    };
+    this.duplicate = function() {
+        var ret    = new Hazard(this.getLevel());
+        ret.pos    = this.pos;
+        ret.direction  = this.direction;
+        ret.level  = this.level;
+        return ret;
+    };
+    this.isEqual = function(that) {
+        if(that === null) { return false; }
+        return this.getLevel() === that.getLevel() && 
+               this.direction.isEqual(that.direction) && 
+               this.level === that.level;
+    };
+    this.decreaseLevel = function() {
+        this.level--;
+    };
 }
 var GameEvent = (function(){
     function GameEvent() {
@@ -811,16 +832,20 @@ var GameEvent = (function(){
     return GameEvent;
 }());
 
-function Spawner(pos) {
-    this.pos = pos;
+function Spawner(freqLow,freqHigh, powerLow, powerHigh) {
+    freqLow   = freqLow   || 5;
+    freqHigh  = freqHigh  || 10;
+    powerLow  = powerLow  || 3;
+    powerHigh = powerHigh || 4;
+    this.pos = new Coord();
     this.directions = [];
     //power of hazard
-    this.powLow = 5;
-    this.posHigh = 6;
+    this.powLow = powerLow;
+    this.powHigh = powerHigh;
     
     //how often hazards are spawn
-    this.freqLow = 5;
-    this.freqHigh = 10;
+    this.freqLow = freqLow;
+    this.freqHigh = freqHigh;
     this.turnsTillNextSpawn = Rand(this.freqLow,this.freqHigh); // will be updated based off freq
     //will be changed 
     this.updateTurns = function() {
@@ -828,9 +853,8 @@ function Spawner(pos) {
         if(this.turnsTillNextSpawn < 0) {
             this.turnsTillNextSpawn = Rand(this.freqLow,this.freqHigh);
             //spawn
-            var ret = new Hazard();
+            var ret = new Hazard(Rand(this.powLow,this.powHigh));
             ret.direction = RandomElement(this.directions);
-            ret.setToLevel(Rand(this.powLow,this.powHigh));
             return ret;
         }
         return null;
@@ -893,8 +917,8 @@ function Game(size) { // pass in Coord of size
     //endregion
     
     //for building map
-    this.setComboBoost = function(boost) { boost = boost; };
-    this.addSpawner = function(pos,spawner) { pos = pos; spawner = spawner;};
+    this.setComboBoost = function(boost) { this.ComboBoost = boost; };
+    this.addSpawner = function(spawner) { this.spawners.push(spawner);};
     this.getDims = function() { return size; };
 }
 
@@ -1049,19 +1073,20 @@ Game.prototype.getPopulation = function() {
 
 
 Game.prototype.update = function() {
+    var potato = this;
     this.spawners.map(function(item) {
-        var newHazard = item.update();
+        var newHazard = item.updateTurns();
         if(newHazard !== null) {
-            
-            this.hazardSpawnedEvent.callAll(newHazard.pos,newHazard);
+            potato.addHazard(newHazard);
+            potato.hazardSpawnedEvent.callAll(newHazard.pos,newHazard);
         }
     });
     this.trackedHazards.foreachInSet(function(item) {
         if(item === null) return;
         var oldPos = item.pos;
         item.pos = item.pos.add(item.direction);
-        this.hazardMovedEvent(oldPos,item.pos);
-        var cell = this.getCell(item.pos);
+        potato.hazardMovedEvent(oldPos,item.pos);
+        var cell = potato.getCell(item.pos);
         cell = new Cell();
         if(cell !== null && cell.item !== null && cell.item.type === ItemType.Housing) {
             //hazard beats item
@@ -1075,11 +1100,11 @@ Game.prototype.update = function() {
                 if(cell.item.getLevel() === 0) {
                     var oldItem = cell.item;
                     cell.item = null;
-                    this.itemChangedEvent.callAll(oldItem.pos,oldItem,cell.item);
+                    potato.itemChangedEvent.callAll(oldItem.pos,oldItem,cell.item);
                 }
                 if(item.getLevel() === 0) {
-                    this.hazardRemovedEvent.callAll(item.pos,item);
-                    this.removeHazard(item);
+                    potato.hazardRemovedEvent.callAll(item.pos,item);
+                    potato.removeHazard(item);
                 }
             }
         } 
@@ -1140,7 +1165,6 @@ var MessageTicker = (function(){
     };
 }());
 //endregion
-
 //region HUDOBJECT
 var terrainSprite;
 var allGraphic = [];
@@ -1217,8 +1241,7 @@ function Grid(container, cells, pos, dim){
         this.squares[i.x][i.y].level=0;
         this.squares[i.x][i.y].isPlaceable=true;
     };
-    
-    this.placeHazard = function(container,pos,haz){
+    this.placeHazard = function(container,i,haz){
         this.squares[i.x][i.y].item = allGraphic[haz].clone();
         var spos = new Coord(i.x*(dim.x/cells.x)+pos.x,i.y*(dim.y/cells.y)+pos.y);
         var sdim = new Coord(dim.x/cells.x,dim.y/cells.y);
@@ -1352,11 +1375,12 @@ QueueBorder[i].graphics.setStrokeStyle(5,"round").beginStroke("#333").drawRect(6
         game.hazardSpawnedEvent.addCallBack(function(pos,hazard){
             grid.placeHazard(container,pos,6);
         });
-//endregion
-//region Game Setup
-        game.addSpawner(new Coord(4,4),new Spawner(new Coord(4,4)));
         
 //endregion
+        game.addSpawner(new Spawner(5,8,3,5));
+        game.spawners[0].pos = new Coord(4,4);
+        game.spawners[0].directions[0] = new Coord(0,-1);
+        game.spawners[0].directions[1] = new Coord(-1,0);
 //region UI setup
         turnsLabel = new createjs.Text("Turns: ", "italic 20px Orbitron", "#FFF");
         turnsLabel.x = 580;
