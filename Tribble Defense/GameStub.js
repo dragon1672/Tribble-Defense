@@ -16,7 +16,11 @@ function RandomElement(array) {
 function SingleSelect(array,selector) {
     selector = selector || function(a,b) { return a > b ? a : b; };
     var ret = null;
-    array.map(function(item) { ret = ret === null ? item : selector(item,ret);});
+	var first = true;
+    array.map(function(item) {
+		ret = first ? item : selector(item,ret);
+		first = false;
+	});
     return ret;
 }
 function Max(array) { return SingleSelect(array,function(a,b) { return a > b ? a : b; }); }
@@ -538,10 +542,15 @@ var Game = (function() {
 
         return preloadedQuery;
     };
-    //pass x,y or pos
+    
+    Game.prototype.inBounds      = function(x,y) {
+        var pos = y === undefined ? x : new Coord(x,y);
+        return pos.withinBox(this.getDims());
+    };
     Game.prototype.getCell       = function(x,y) {
         var pos = y === undefined ? x : new Coord(x,y);
         if(pos.withinBox(this.getDims())) { return this.Grid[pos.x][pos.y]; }
+        if(this.inBounds(pos)) { return this.Grid[pos.x][pos.y]; }
         return null;
     };
     Game.prototype.getCellNeighbors = function(cellPos) {
@@ -560,6 +569,51 @@ var Game = (function() {
         });
         return ret;
     };
+    
+    Game.prototype.withinVertBounds = function(pos) {
+        return 0 <= pos.y && pos.y <= this.getDims().y;
+    };
+    Game.prototype.withinHorzBounds = function(pos) {
+        return 0 <= pos.x && pos.x <= this.getDims().x;
+    };
+
+    function clamp(src,low,high) {
+        src = Math.max(src,low);
+        src = Math.min(src,high);
+        return src;
+    }
+    function clampVec(src,low,high) {
+        var ret = new Coord();
+        ret.x = clamp(src.x,low,high);
+        ret.y = clamp(src.y,low,high);
+        return ret;
+    }
+    
+    Game.prototype.movingInBounds = function(pos,dir) {
+        var valid = this.inBounds(pos);
+        if(!valid) {
+            if(this.withinHorzBounds(pos)) {
+                valid = dir.y > 0 && pos.y < 0 ||
+                        dir.y < 0 && pos.y > 0;
+            } else if(this.withinVertBounds(pos)) {
+                valid = dir.x > 0 && pos.x < 0 ||
+                        dir.x < 0 && pos.x > 0;
+            } else {
+                //get nearestCorner
+                var nearestCornerPos;
+                var corners = [new Coord(0,0), new Coord(this.getDims().x,0),new Coord(0,this.getDims().y),new Coord(this.getDims())];
+                nearestCornerPos = SingleSelect(corners,function(a,b) {
+                    return pos.sub(a).lengthSquared() < pos.sub(b).lengthSquared() ? a : b;
+                });
+                //complete
+                var diff = clampVec(nearestCornerPos.sub(pos),-1,1);
+                return diff.isEqual(clampVec(dir,-1,1));
+            }
+        }
+        return valid;
+    };
+    
+    
     
     Game.prototype.update = function() {
         var potato = this;
@@ -585,7 +639,7 @@ var Game = (function() {
                 }
             }
             item.decreaseLevel();
-            if(item.getLevel() <= 0) {
+            if(item.getLevel() <= 0 || !this.movingInBounds(item.pos,item.direction)) {
                 potato.hazardRemovedEvent.callAll(item.pos,item);
                 potato.removeHazard(item);
             }
