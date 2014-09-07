@@ -344,6 +344,7 @@ function Spawner(freqLow,freqHigh, powerLow, powerHigh) {
             this.turnsTillNextSpawn = Rand(this.freqLow,this.freqHigh);
             //spawn
             var ret = new Hazard(Rand(this.powLow,this.powHigh));
+            ret.pos = this.pos;
             ret.direction = RandomElement(this.directions);
             return ret;
         }
@@ -355,251 +356,247 @@ function Spawner(freqLow,freqHigh, powerLow, powerHigh) {
 //endregion
 
 //region Game
-function Game(size) { // pass in Coord of size
-    
-    this.size = size;
-    this.turns = 42;
-    this.Grid = [];
-    this.ComboBoost = 3;
-    this.avalableItemPool = [];
-    
-    this.spawners = [];
-    this.trackedHazards = new HashSet();
-    
-    //region events
-    
-    //function(pos,oldItem, new item)
-    this.itemChangedEvent = new GameEvent();
-    //function(pos,hazard)
-    this.hazardSpawnedEvent = new GameEvent();
-    //function(oldPos,newPos)
-    this.hazardMovedEvent = new GameEvent();
-    //function(pos,hazard)
-    this.hazardRemovedEvent = new GameEvent();
-    
-    //function()
-    this.itemQChangedEvent = new GameEvent();
-    //function()
-    this.populationChangedEvent = new GameEvent();
-    
-    //endregion
-    
-    //region init
-    var i;
-    { // init pool
-        var basicHouse = new Item(ItemType.Housing);
-        basicHouse.population = 1;
-        basicHouse.strength = 1;
-        this.addItemToPool(basicHouse,5);
-        //adding powerups
-        this.addItemToPool(new Item(ItemType.BlackHole),1);
-    }
-    this.nextItemList = [];
-    
-    //init grid
-    for(i=0;i<size.x;i++) {
-        this.Grid[i] = [];
-        for(var j=0;j<size.y;j++) {
-            this.Grid[i][j] = new Cell(new Coord(i,j));
+var Game = (function() {
+    function Game(size) {
+        this.size = size;
+        this.turns = 42;
+        this.Grid = [];
+        this.ComboBoost = 3;
+        this.avalableItemPool = [];
+
+        this.spawners = [];
+        this.trackedHazards = new HashSet();
+
+        //region events
+
+        //function(pos,oldItem, new item)
+        this.itemChangedEvent = new GameEvent();
+        //function(pos,hazard)
+        this.hazardSpawnedEvent = new GameEvent();
+        //function(oldPos,newPos)
+        this.hazardMovedEvent = new GameEvent();
+        //function(pos,hazard)
+        this.hazardRemovedEvent = new GameEvent();
+
+        //function()
+        this.itemQChangedEvent = new GameEvent();
+        //function()
+        this.populationChangedEvent = new GameEvent();
+
+        //endregion
+
+        //region init
+        var i;
+        { // init pool
+            var basicHouse = new Item(ItemType.Housing);
+            basicHouse.population = 1;
+            basicHouse.strength = 1;
+            this.addItemToPool(basicHouse,5);
+            //adding powerups
+            this.addItemToPool(new Item(ItemType.BlackHole),1);
         }
-    }
-    
-    //endregion
-    
-    //for building map
-    this.setComboBoost = function(boost) { this.ComboBoost = boost; };
-    this.addSpawner = function(spawner) { this.spawners.push(spawner);};
-    this.getDims = function() { return size; };
-}
+        this.nextItemList = [];
 
-Game.prototype.addHazard = function(toAdd) {
-    this.trackedHazards.add(toAdd);
-};
-Game.prototype.removeHazard = function(toKill) {
-    this.trackedHazards.remove(toKill);
-};
-Game.prototype.addItemToPool = function(item,count) {
-    count = count || 1;
-    for(var i = 0 ;i<count;i++) {
-        this.avalableItemPool.push(item.duplicate());
-    }
-};
-Game.prototype.foreachCell = function(operation) {
-    for(var i=0;i<this.size.x;i++) {
-        for(var j=0;j<this.size.y;j++) {
-            operation(this.Grid[i][j]);
+        //init grid
+        for(i=0;i<size.x;i++) {
+            this.Grid[i] = [];
+            for(var j=0;j<size.y;j++) {
+                this.Grid[i][j] = new Cell(new Coord(i,j));
+            }
         }
-    }
-};
-//public functions
-Game.prototype.getTurnCount  = function() { return this.turns; };
-Game.prototype.popFromQ = function() {
-    this.itemQ(0);
-    var ret = this.nextItemList.shift();
-    this.itemQChangedEvent.callAll();
-    return ret;
-};
-Game.prototype.itemQ         = function(index) {
-    while(this.nextItemList.length <= index) {
-        this.nextItemList.push(RandomElement(this.avalableItemPool).duplicate());
-    }
-    return this.nextItemList[index];
-};
-Game.prototype.QueryMove     = function(pos,itemToPlace) {
-    itemToPlace = itemToPlace || this.itemQ(0);
-    var thisCell = this.getCell(pos);
-    var ret = new Query(thisCell !== null);
-    ret.alreadyOccupied = thisCell.item !== null;
-    function pushToRet(cellToAdd) {
-        ret.cells.push(cellToAdd);
-        ret.positions.push(cellToAdd.pos);
-    }
 
-    var itemToCheck = itemToPlace.duplicate();
-    var sameType;
-    while( (sameType = this.MoveHelper(new HashSet(),this.getCell(pos),itemToCheck)).length >=3 ) {
-        itemToCheck.setToLevel(itemToCheck.getLevel()+1);
-        ret.levelBoost = itemToCheck.getLevel() - itemToPlace.getLevel();
-        sameType.map(pushToRet);
+        //endregion
+
+        //for building map
     }
-    ret.valid = ret.positions.length > 2;
-    return ret;
-};
-Game.prototype.MoveHelper = function(visistedPool,current, item) {
-    item = item || current.item;
-    if(item === null) { throw new Error("must have item to compare with"); }
-    var ret = [];
-    if(current === null || visistedPool.contains(current)) { return ret; }
-
-    visistedPool.add(current);
-    ret.push(current);
-
-    var sameTypeNeighbors = Where(this.getCellNeighbors(current.pos),function(that) { return item.isEqual(that.item); });
-    var potato = this;
-    sameTypeNeighbors.map(function(buddy) {
-        var buddyPals = potato.MoveHelper(visistedPool,buddy); // this is breaking :(
-        buddyPals.map(function(item) {
-           ret.push(item); 
-        });
-    });
-    return ret;
-};
-
-//pass
-//ApplyMove(Query)
-//ApplyMove(pos, optionalItem)
-Game.prototype.ApplyMove     = function(pos,itemToPlace, preloadedQuery) {
-    if(pos instanceof(Query)) {
-        preloadedQuery = pos;
-        pos = preloadedQuery.cells[0].pos;
-    }
-    var thisCell = this.getCell(pos);
-    if(thisCell === null) { throw new Error("Must apply move to valid cell"); }
-    if(thisCell.item !== null) { console.log("warning placing ontop of existing cell"); }
-
     
-    itemToPlace = itemToPlace || this.popFromQ();
+    Game.prototype.getDims = function() { return this.size; };
+    Game.prototype.setComboBoost = function(boost) {
+        this.ComboBoost = boost;
+    };
+    Game.prototype.addSpawner = function(spawner) { this.spawners.push(spawner);};
     
-    if(itemToPlace.type === ItemType.Housing) {
-        preloadedQuery = preloadedQuery || this.QueryMove(pos,itemToPlace);
-        
-        this.avalableItemPool.push(itemToPlace.duplicate());
-        
+    Game.prototype.addHazard = function(toAdd) { this.trackedHazards.add(toAdd); };
+    Game.prototype.removeHazard = function(toKill) { this.trackedHazards.remove(toKill); };
+    Game.prototype.addItemToPool = function(item,count) {
+        count = count || 1;
+        for(var i = 0 ;i<count;i++) {
+            this.avalableItemPool.push(item.duplicate());
+        }
+    };
+    Game.prototype.foreachCell = function(operation) {
+        for(var i=0;i<this.size.x;i++) {
+            for(var j=0;j<this.size.y;j++) {
+                operation(this.Grid[i][j]);
+            }
+        }
+    };
+    //public functions
+    Game.prototype.getTurnCount  = function() { return this.turns; };
+    Game.prototype.popFromQ = function() {
+        this.itemQ(0);
+        var ret = this.nextItemList.shift();
+        this.itemQChangedEvent.callAll();
+        return ret;
+    };
+    Game.prototype.itemQ         = function(index) {
+        while(this.nextItemList.length <= index) {
+            this.nextItemList.push(RandomElement(this.avalableItemPool).duplicate());
+        }
+        return this.nextItemList[index];
+    };
+    Game.prototype.QueryMove     = function(pos,itemToPlace) {
+        itemToPlace = itemToPlace || this.itemQ(0);
+        var thisCell = this.getCell(pos);
+        var ret = new Query(thisCell !== null);
+        ret.alreadyOccupied = thisCell.item !== null;
+        function pushToRet(cellToAdd) {
+            ret.cells.push(cellToAdd);
+            ret.positions.push(cellToAdd.pos);
+        }
+
+        var itemToCheck = itemToPlace.duplicate();
+        var sameType;
+        while( (sameType = this.MoveHelper(new HashSet(),this.getCell(pos),itemToCheck)).length >=3 ) {
+            itemToCheck.setToLevel(itemToCheck.getLevel()+1);
+            ret.levelBoost = itemToCheck.getLevel() - itemToPlace.getLevel();
+            sameType.map(pushToRet);
+        }
+        ret.valid = ret.positions.length > 2;
+        return ret;
+    };
+    Game.prototype.MoveHelper = function(visistedPool,current, item) {
+        item = item || current.item;
+        if(item === null) { throw new Error("must have item to compare with"); }
+        var ret = [];
+        if(current === null || visistedPool.contains(current)) { return ret; }
+
+        visistedPool.add(current);
+        ret.push(current);
+
+        var sameTypeNeighbors = Where(this.getCellNeighbors(current.pos),function(that) { return item.isEqual(that.item); });
         var potato = this;
-        if(preloadedQuery.valid) {
-            preloadedQuery.cells.map(function(meCell) {
-                if(!meCell.pos.isEqual(pos)) {
-                    itemToPlace.population += meCell.item.population;
-                    var old = meCell.item;
-                    meCell.item = null;
-                    potato.itemChangedEvent.callAll(meCell.pos,old,null);
-                }
+        sameTypeNeighbors.map(function(buddy) {
+            var buddyPals = potato.MoveHelper(visistedPool,buddy); // this is breaking :(
+            buddyPals.map(function(item) {
+               ret.push(item); 
             });
-            itemToPlace.population += preloadedQuery.levelBoost * this.ComboBoost;
-            itemToPlace.setToLevel(itemToPlace.getLevel()+preloadedQuery.levelBoost);
-        }
-        var old = thisCell.item;
-        thisCell.item = itemToPlace;
-        this.itemChangedEvent.callAll(thisCell.pos,old,itemToPlace);
-        this.avalableItemPool.push(itemToPlace.duplicate());
-    } else {
-        if(itemToPlace.type === ItemType.BlackHole) {
-            preloadedQuery = new Query(true);
-            preloadedQuery.alreadyOccupied = thisCell.item !== null;
-            thisCell.item = null;
-        }
-    }
+        });
+        return ret;
+    };
 
-    this.turns--;
-    this.update();
+    //pass
+    //ApplyMove(Query)
+    //ApplyMove(pos, optionalItem)
+    Game.prototype.ApplyMove     = function(pos,itemToPlace, preloadedQuery) {
+        if(pos instanceof(Query)) {
+            preloadedQuery = pos;
+            pos = preloadedQuery.cells[0].pos;
+        }
+        var thisCell = this.getCell(pos);
+        if(thisCell === null) { throw new Error("Must apply move to valid cell"); }
+        if(thisCell.item !== null) { console.log("warning placing ontop of existing cell"); }
+
+
+        itemToPlace = itemToPlace || this.popFromQ();
+
+        if(itemToPlace.type === ItemType.Housing) {
+            preloadedQuery = preloadedQuery || this.QueryMove(pos,itemToPlace);
+
+            this.avalableItemPool.push(itemToPlace.duplicate());
+
+            var potato = this;
+            if(preloadedQuery.valid) {
+                preloadedQuery.cells.map(function(meCell) {
+                    if(!meCell.pos.isEqual(pos)) {
+                        itemToPlace.population += meCell.item.population;
+                        var old = meCell.item;
+                        meCell.item = null;
+                        potato.itemChangedEvent.callAll(meCell.pos,old,null);
+                    }
+                });
+                itemToPlace.population += preloadedQuery.levelBoost * this.ComboBoost;
+                itemToPlace.setToLevel(itemToPlace.getLevel()+preloadedQuery.levelBoost);
+                this.populationChangedEvent.callAll();
+            }
+            var old = thisCell.item;
+            thisCell.item = itemToPlace;
+            this.itemChangedEvent.callAll(thisCell.pos,old,itemToPlace);
+            this.avalableItemPool.push(itemToPlace.duplicate());
+        } else {
+            if(itemToPlace.type === ItemType.BlackHole) {
+                preloadedQuery = new Query(true);
+                preloadedQuery.alreadyOccupied = thisCell.item !== null;
+                thisCell.item = null;
+            }
+        }
+
+        this.turns--;
+        this.update();
+
+        return preloadedQuery;
+    };
+    Game.prototype.getCell       = function(pos) {
+        if(pos.withinBox(this.getDims())) { return this.Grid[pos.x][pos.y]; }
+        return null;
+    };
+    Game.prototype.getCellNeighbors = function(cellPos) {
+        var temp = null;
+        var ret = [];
+        temp = this.getCell(cellPos.add(new Coord( 1, 0))); if(temp !== null) { ret.push(temp); }
+        temp = this.getCell(cellPos.add(new Coord( 0, 1))); if(temp !== null) { ret.push(temp); }
+        temp = this.getCell(cellPos.add(new Coord(-1, 0))); if(temp !== null) { ret.push(temp); }
+        temp = this.getCell(cellPos.add(new Coord( 0,-1))); if(temp !== null) { ret.push(temp); }
+        return ret;
+    };
+    Game.prototype.getPopulation = function() {
+        var ret = 0;
+        this.foreachCell(function(cell) {
+            ret += cell.item !== null ? cell.item.population : 0;
+        });
+        return ret;
+    };
     
-    this.populationChangedEvent.callAll();
-
-    return preloadedQuery;
-};
-Game.prototype.getCell       = function(pos) {
-    if(pos.withinBox(this.getDims())) { return this.Grid[pos.x][pos.y]; }
-    return null;
-};
-Game.prototype.getCellNeighbors = function(cellPos) {
-    var temp = null;
-    var ret = [];
-    temp = this.getCell(cellPos.add(new Coord( 1, 0))); if(temp !== null) { ret.push(temp); }
-    temp = this.getCell(cellPos.add(new Coord( 0, 1))); if(temp !== null) { ret.push(temp); }
-    temp = this.getCell(cellPos.add(new Coord(-1, 0))); if(temp !== null) { ret.push(temp); }
-    temp = this.getCell(cellPos.add(new Coord( 0,-1))); if(temp !== null) { ret.push(temp); }
-    return ret;
-};
-Game.prototype.getPopulation = function() {
-    var ret = 0;
-    this.foreachCell(function(cell) {
-        ret += cell.item !== null ? cell.item.population : 0;
-    });
-    return ret;
-};
-
-
-
-
-
-Game.prototype.update = function() {
-    var potato = this;
-    this.spawners.map(function(item) {
-        var newHazard = item.updateTurns();
-        if(newHazard !== null) {
-            potato.addHazard(newHazard);
-            potato.hazardSpawnedEvent.callAll(newHazard.pos,newHazard);
-        }
-    });
-    this.trackedHazards.foreachInSet(function(item) {
-        if(item === null) return;
-        var oldPos = item.pos;
-        item.pos = item.pos.add(item.direction);
-        potato.hazardMovedEvent(oldPos,item.pos);
-        var cell = potato.getCell(item.pos);
-        cell = new Cell();
-        if(cell !== null && cell.item !== null && cell.item.type === ItemType.Housing) {
-            //hazard beats item
-            var changed = false;
-            while(item.getLevel() > 0 && cell.item.getLevel() > 0) {
-                item.decreaseLevel();
-                cell.item.decreaseLevel();
-                changed = true;
-            }
-            if(changed) {
-                if(cell.item.getLevel() === 0) {
-                    var oldItem = cell.item;
-                    cell.item = null;
-                    potato.itemChangedEvent.callAll(oldItem.pos,oldItem,cell.item);
+    Game.prototype.update = function() {
+        var potato = this;
+        this.trackedHazards.foreachInSet(function(item) {
+            var oldPos = item.pos;
+            item.pos = item.pos.add(item.direction);
+            potato.hazardMovedEvent.callAll(oldPos,item.pos);
+            var cell = potato.getCell(item.pos);
+            if(cell !== null && cell.item !== null && cell.item.type === ItemType.Housing) {
+                //hazard beats item
+                var changed = false;
+                while(item.getLevel() > 0 && cell.item.getLevel() > 0) {
+                    item.decreaseLevel();
+                    cell.item.decreaseLevel();
+                    changed = true;
                 }
-                if(item.getLevel() === 0) {
-                    potato.hazardRemovedEvent.callAll(item.pos,item);
-                    potato.removeHazard(item);
+                if(changed) {
+                    if(cell.item.getLevel() === 0) {
+                        var oldItem = cell.item;
+                        cell.item = null;
+                        potato.itemChangedEvent.callAll(oldItem.pos,oldItem,cell.item);
+                    }
                 }
             }
-        } 
-    });
-};
+            item.decreaseLevel();
+            if(item.getLevel() <= 0) {
+                potato.hazardRemovedEvent.callAll(item.pos,item);
+                potato.removeHazard(item);
+            }
+        });
+        this.spawners.map(function(item) {
+            var newHazard = item.updateTurns();
+            if(newHazard !== null) {
+                potato.addHazard(newHazard);
+                potato.hazardSpawnedEvent.callAll(newHazard.pos,newHazard);
+            }
+        });
+    };
+    
+    return Game;
+}());
 
 
 
