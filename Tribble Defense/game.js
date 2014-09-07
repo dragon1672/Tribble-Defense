@@ -498,8 +498,8 @@ function init() {
         onImg: loadImage("SpeakerOn"),
         offImg: loadImage("SpeakerOff"),
     };
-    speaker.onImg.x = stage.canvas.width  - speaker.onImg.getBounds().width;
-    speaker.onImg.y = stage.canvas.height - speaker.onImg.getBounds().height;
+    speaker.onImg.x = stage.canvas.width  - speaker.onImg.getBounds().width-20;
+    speaker.onImg.y = stage.canvas.height - speaker.onImg.getBounds().height-20;
     speaker.offImg.x = speaker.onImg.x;
     speaker.offImg.y = speaker.onImg.y;
     speaker.onImg.on("click", function() {
@@ -1262,6 +1262,13 @@ function Square(pos,dim){
         this.graphic.scaleY = this.dim.y/128;
         container.addChild(this.graphic);
     };
+    this.destruct = function(container){
+        this.pos=0;
+        this.dim=0;
+        this.misc=0;
+        container.removeChild(this.graphic);
+        this.graphic=null;
+    };
 }
 
 function Grid(container, cells, pos, dim){
@@ -1289,17 +1296,27 @@ function Grid(container, cells, pos, dim){
     
     this.placeStatic = function(container,i,type){
         this.squares[i.x][i.y].changeItem(container,type+staticBuf);
+        this.squares[i.x][i.y].misc=-1;
+    };
+    this.hasStatic = function(i){
+        return this.squares[i.x][i.y].misc==-1;
     };
     
     this.placeSpawner = function(container,i,haz){
         this.squares[i.x][i.y].changeItem(container,haz+spawnerBuf);
+        this.squares[i.x][i.y].misc=haz+1;
+    };
+    this.getHazardType = function(i){
+        return this.squares[i.x][i.y].misc-1;
     };
     
     this.clear = function(container,i){
         this.squares[i.x][i.y].changeItem(container,0);
+        if(this.squares[i.x][i.y].misc!==0){this.squares[i.x][i.y].misc=0;}
     };
     this.placeHazard = function(container,i,haz){
         this.squares[i.x][i.y].changeItem(container,haz+hazardBuf);
+        this.squares[i.x][i.y].misc=haz+1;
     };
     
     this.randomStatic = function(container,amount){
@@ -1308,6 +1325,15 @@ function Grid(container, cells, pos, dim){
             var ry = Math.floor(Math.random() * this.cells.y);
             var rtype = Math.floor(Math.random() * numStatics);
             this.placeStatic(container,new Coord(rx,ry),rtype);
+            
+        }
+    };
+    this.destruct = function(container){
+        for(var i=0; i<cells.x; i++){
+            for(var j=0; j<cells.y; j++){
+                this.squares[i][j].destruct(container);
+                this.squares[i][j] = null;
+            }
         }
     };
 }
@@ -1446,6 +1472,7 @@ QueueBorder[i].graphics.setStrokeStyle(5,"round").beginStroke("#333").drawRect(6
     GameStates.Game.enable = function() {
         
         game = new Game(new Coord(6,6));
+        game.turns=45;
 //region Game Events
         game.itemQChangedEvent.addCallBack(function(e){
             e = e;
@@ -1456,17 +1483,19 @@ QueueBorder[i].graphics.setStrokeStyle(5,"round").beginStroke("#333").drawRect(6
             var popul = game.getPopulation();
             pop.text = "Pop " + popul;
             updateStars(popul/goalAmount);
+            score = popul;
         });
         game.itemChangedEvent.addCallBack(function(pos,oldItem,newItem){
             if(newItem!==null)grid.placeElement(container,pos,newItem.getLevel());
             else grid.clear(container,pos);
         });
         game.hazardSpawnedEvent.addCallBack(function(pos,hazard){
-            grid.placeHazard(container,pos,0);
+            grid.placeHazard(container,pos,grid.getHazardType(pos));
         });
         game.hazardMovedEvent.addCallBack(function(oldPos,newPos){
+            var hazType = grid.getHazardType(oldPos);
             grid.clear(container,oldPos);
-            grid.placeHazard(container,newPos,0);
+            grid.placeHazard(container,newPos,hazType);
         });
         game.hazardRemovedEvent.addCallBack(function(pos,hazard){
             grid.clear(container,pos); 
@@ -1479,6 +1508,10 @@ QueueBorder[i].graphics.setStrokeStyle(5,"round").beginStroke("#333").drawRect(6
         game.spawners[0].pos = new Coord(4,4);
         game.spawners[0].directions[0] = new Coord(0,-1);
         game.spawners[0].directions[1] = new Coord(-1,0);
+        game.addSpawner(new Spawner(1,2,7,8));
+        game.spawners[1].pos = new Coord(0,0);
+        game.spawners[1].directions[0] = new Coord(0,1);
+        game.spawners[1].directions[1] = new Coord(1,1);
 //endregion
 //region UI setup
         turnsLabel = new createjs.Text("Turns: ", "italic 20px Orbitron", "#FFF");
@@ -1528,7 +1561,7 @@ QueueBorder[i].graphics.setStrokeStyle(5,"round").beginStroke("#333").drawRect(6
         
         for(i=0; i<game.spawners.length; i++){
             if(game.spawners[i].pos.withinBox(game.getDims())){
-                grid.placeSpawner(container,game.spawners[i].pos,0);   
+                grid.placeSpawner(container,game.spawners[i].pos,i);   
             }
         }
 //endregion
@@ -1545,10 +1578,12 @@ QueueBorder[i].graphics.setStrokeStyle(5,"round").beginStroke("#333").drawRect(6
             var index = mouse.pos.sub(grid.pos).div(grid.dim.x/grid.cells.x);
             var flooredIndex = index.floor();
             var queryInfo = game.QueryMove(flooredIndex,game.itemQ(0));
-            if(game.itemQ(0).type==ItemType.BlackHole&&queryInfo.alreadyOccupied){                   grid.clear(container,flooredIndex);
-                game.ApplyMove(flooredIndex,game.popFromQ(),queryInfo);
+            if(game.itemQ(0).type==ItemType.BlackHole){
+                if(queryInfo.alreadyOccupied||grid.hasStatic(flooredIndex)){                             grid.clear(container,flooredIndex);
+                    game.ApplyMove(flooredIndex,game.popFromQ(),queryInfo);
+                }
             }
-            else if(!queryInfo.alreadyOccupied){
+            else if(!queryInfo.alreadyOccupied&&!grid.hasStatic(flooredIndex)){
                 game.ApplyMove(flooredIndex,game.popFromQ(),queryInfo);
             }
         }
@@ -1565,6 +1600,7 @@ QueueBorder[i].graphics.setStrokeStyle(5,"round").beginStroke("#333").drawRect(6
         container.removeChild(turns);
         container.removeChild(pop); 
         container.removeChild(goal); 
+        grid.destruct(container);
     };
 }
 //endregion
