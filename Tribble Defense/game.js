@@ -180,13 +180,19 @@ var FPS = 30;
 var manifest = [
     {src:"audio/Loading.mp3", id:"Loading"},
     {src:"images/Static/Title.png", id:"title"},
-    {src:"images/Terrain/BackgroundBase.png", id:"background"},
-    {src:"images/Terrain/pathOpen.png", id:"path"},
+    {src:"images/Terrain/BackgroundBasePurple.png", id:"purBackground"},
+    {src:"images/Terrain/BackgroundBaseBlue.png", id:"bluBackground"},
+    {src:"images/Terrain/pathOpenPurple.png", id:"purPath"},
+    {src:"images/Terrain/pathOpenBlue.png", id:"bluPath"},
     {src:"audio/GameOver.mp3", id:"Failure"},
     {src:"images/Static/Instructions.png", id:"instructions"},
     {src:"images/Static/Credits.png", id:"credits"},
     {src:"audio/GamePlay.mp3", id:"GamePlay"},
     {src:"images/Static/GameOverPurplePlanet.png", id:"gameover"},
+    {src:"images/Static/purpleRockBlock.png", id:"purRock"},
+    {src:"images/Static/blueRockBlock.png", id:"bluRock"},
+    {src:"images/Static/purpleTreeBlock.png", id:"purTree"},
+    {src:"images/Static/blueTreeBlock.png", id:"bluTree"},
     {src:"images/buttons.png", id:"button"},
     {src:"images/SpeakerOn.png", id:"SpeakerOn"},
     {src:"audio/StartScreen.mp3", id:"StartScreen"},
@@ -194,12 +200,20 @@ var manifest = [
     {src:"images/Barrier.png", id:"Barrier"},
     {src:"images/stars.png", id:"Stars"},
     {src:"images/Hazard/LightningBolt.png", id:"bolt"},
+    {src:"images/Hazard/tsunamiBlock.png", id:"tsunami"},
     {src:"images/Hazard/mantisBlock.png", id:"mantis"},
-    {src:"images/Population/purplePop1.png", id:"pop1"},
-    {src:"images/Population/purplePop2.png", id:"pop2"},
-    {src:"images/Population/purplePop3.png", id:"pop3"},
-    {src:"images/Population/purplePop4.png", id:"pop4"},
-    {src:"images/Population/purplePop5.png", id:"pop5"},
+    {src:"images/Hazard/fireBlock.png", id:"fire"},
+    {src:"images/Hazard/monsterBlock.png", id:"creeper"},
+    {src:"images/Population/purplePop1.png", id:"purPop1"},
+    {src:"images/Population/purplePop2.png", id:"purPop2"},
+    {src:"images/Population/purplePop3.png", id:"purPop3"},
+    {src:"images/Population/purplePop4.png", id:"purPop4"},
+    {src:"images/Population/purplePop5.png", id:"purPop5"},
+    {src:"images/Population/bluePop1.png", id:"bluPop1"},
+    {src:"images/Population/bluePop2.png", id:"bluPop2"},
+    {src:"images/Population/bluePop3.png", id:"bluPop3"},
+    {src:"images/Population/bluePop4.png", id:"bluPop4"},
+    {src:"images/Population/bluePop5.png", id:"bluPop5"},
 ];
 
 var queue;
@@ -465,7 +479,6 @@ var score = 0;
 //to be called after files have been loaded
 function init() {
     GameStates.StartScreen.container.addChild(  loadImage("title")        );
-    GameStates.Game.container.addChild(         loadImage("background")   );
     GameStates.Instructions.container.addChild( loadImage("instructions") );
     GameStates.Credits.container.addChild(      loadImage("credits") );
     GameStates.GameOver.container.addChild(     loadImage("gameover")     );
@@ -854,6 +867,7 @@ function Spawner(freqLow,freqHigh, powerLow, powerHigh) {
             this.turnsTillNextSpawn = Rand(this.freqLow,this.freqHigh);
             //spawn
             var ret = new Hazard(Rand(this.powLow,this.powHigh));
+            ret.pos = this.pos;
             ret.direction = RandomElement(this.directions);
             return ret;
         }
@@ -865,251 +879,251 @@ function Spawner(freqLow,freqHigh, powerLow, powerHigh) {
 //endregion
 
 //region Game
-function Game(size) { // pass in Coord of size
-    
-    this.size = size;
-    this.turns = 42;
-    this.Grid = [];
-    this.ComboBoost = 3;
-    this.avalableItemPool = [];
-    
-    this.spawners = [];
-    this.trackedHazards = new HashSet();
-    
-    //region events
-    
-    //function(pos,oldItem, new item)
-    this.itemChangedEvent = new GameEvent();
-    //function(pos,hazard)
-    this.hazardSpawnedEvent = new GameEvent();
-    //function(oldPos,newPos)
-    this.hazardMovedEvent = new GameEvent();
-    //function(pos,hazard)
-    this.hazardRemovedEvent = new GameEvent();
-    
-    //function()
-    this.itemQChangedEvent = new GameEvent();
-    //function()
-    this.populationChangedEvent = new GameEvent();
-    
-    //endregion
-    
-    //region init
-    var i;
-    { // init pool
-        var basicHouse = new Item(ItemType.Housing);
-        basicHouse.population = 1;
-        basicHouse.strength = 1;
-        this.addItemToPool(basicHouse,5);
-        //adding powerups
-        this.addItemToPool(new Item(ItemType.BlackHole),1);
-    }
-    this.nextItemList = [];
-    
-    //init grid
-    for(i=0;i<size.x;i++) {
-        this.Grid[i] = [];
-        for(var j=0;j<size.y;j++) {
-            this.Grid[i][j] = new Cell(new Coord(i,j));
+var Game = (function() {
+    //pass x,y or size
+    function Game(x,y) {
+        x = x || new Coord(5,5);
+        this.size = y === undefined ? x : new Coord(x,y);
+        this.turns = 42;
+        this.Grid = [];
+        this.ComboBoost = 3;
+        this.avalableItemPool = [];
+
+        this.spawners = [];
+        this.trackedHazards = new HashSet();
+
+        //region events
+
+        //function(pos,oldItem, new item)
+        this.itemChangedEvent = new GameEvent();
+        //function(pos,hazard)
+        this.hazardSpawnedEvent = new GameEvent();
+        //function(oldPos,newPos)
+        this.hazardMovedEvent = new GameEvent();
+        //function(pos,hazard)
+        this.hazardRemovedEvent = new GameEvent();
+
+        //function()
+        this.itemQChangedEvent = new GameEvent();
+        //function()
+        this.populationChangedEvent = new GameEvent();
+
+        //endregion
+
+        //region init
+        var i;
+        { // init pool
+            var basicHouse = new Item(ItemType.Housing);
+            basicHouse.population = 1;
+            basicHouse.strength = 1;
+            this.addItemToPool(basicHouse,5);
+            //adding powerups
+            this.addItemToPool(new Item(ItemType.BlackHole),1);
         }
-    }
-    
-    //endregion
-    
-    //for building map
-    this.setComboBoost = function(boost) { this.ComboBoost = boost; };
-    this.addSpawner = function(spawner) { this.spawners.push(spawner);};
-    this.getDims = function() { return size; };
-}
+        this.nextItemList = [];
 
-Game.prototype.addHazard = function(toAdd) {
-    this.trackedHazards.add(toAdd);
-};
-Game.prototype.removeHazard = function(toKill) {
-    this.trackedHazards.remove(toKill);
-};
-Game.prototype.addItemToPool = function(item,count) {
-    count = count || 1;
-    for(var i = 0 ;i<count;i++) {
-        this.avalableItemPool.push(item.duplicate());
-    }
-};
-Game.prototype.foreachCell = function(operation) {
-    for(var i=0;i<this.size.x;i++) {
-        for(var j=0;j<this.size.y;j++) {
-            operation(this.Grid[i][j]);
+        //init grid
+        for(i=0;i<this.size.x;i++) {
+            this.Grid[i] = [];
+            for(var j=0;j<this.size.y;j++) {
+                this.Grid[i][j] = new Cell(new Coord(i,j));
+            }
         }
-    }
-};
-//public functions
-Game.prototype.getTurnCount  = function() { return this.turns; };
-Game.prototype.popFromQ = function() {
-    this.itemQ(0);
-    var ret = this.nextItemList.shift();
-    this.itemQChangedEvent.callAll();
-    return ret;
-};
-Game.prototype.itemQ         = function(index) {
-    while(this.nextItemList.length <= index) {
-        this.nextItemList.push(RandomElement(this.avalableItemPool).duplicate());
-    }
-    return this.nextItemList[index];
-};
-Game.prototype.QueryMove     = function(pos,itemToPlace) {
-    itemToPlace = itemToPlace || this.itemQ(0);
-    var thisCell = this.getCell(pos);
-    var ret = new Query(thisCell !== null);
-    ret.alreadyOccupied = thisCell.item !== null;
-    function pushToRet(cellToAdd) {
-        ret.cells.push(cellToAdd);
-        ret.positions.push(cellToAdd.pos);
-    }
 
-    var itemToCheck = itemToPlace.duplicate();
-    var sameType;
-    while( (sameType = this.MoveHelper(new HashSet(),this.getCell(pos),itemToCheck)).length >=3 ) {
-        itemToCheck.setToLevel(itemToCheck.getLevel()+1);
-        ret.levelBoost = itemToCheck.getLevel() - itemToPlace.getLevel();
-        sameType.map(pushToRet);
+        //endregion
+
+        //for building map
     }
-    ret.valid = ret.positions.length > 2;
-    return ret;
-};
-Game.prototype.MoveHelper = function(visistedPool,current, item) {
-    item = item || current.item;
-    if(item === null) { throw new Error("must have item to compare with"); }
-    var ret = [];
-    if(current === null || visistedPool.contains(current)) { return ret; }
-
-    visistedPool.add(current);
-    ret.push(current);
-
-    var sameTypeNeighbors = Where(this.getCellNeighbors(current.pos),function(that) { return item.isEqual(that.item); });
-    var potato = this;
-    sameTypeNeighbors.map(function(buddy) {
-        var buddyPals = potato.MoveHelper(visistedPool,buddy); // this is breaking :(
-        buddyPals.map(function(item) {
-           ret.push(item); 
-        });
-    });
-    return ret;
-};
-
-//pass
-//ApplyMove(Query)
-//ApplyMove(pos, optionalItem)
-Game.prototype.ApplyMove     = function(pos,itemToPlace, preloadedQuery) {
-    if(pos instanceof(Query)) {
-        preloadedQuery = pos;
-        pos = preloadedQuery.cells[0].pos;
-    }
-    var thisCell = this.getCell(pos);
-    if(thisCell === null) { throw new Error("Must apply move to valid cell"); }
-    if(thisCell.item !== null) { console.log("warning placing ontop of existing cell"); }
-
     
-    itemToPlace = itemToPlace || this.popFromQ();
+    Game.prototype.getDims = function() { return this.size; };
+    Game.prototype.setComboBoost = function(boost) {
+        this.ComboBoost = boost;
+    };
+    Game.prototype.addSpawner = function(spawner) { this.spawners.push(spawner);};
     
-    if(itemToPlace.type === ItemType.Housing) {
-        preloadedQuery = preloadedQuery || this.QueryMove(pos,itemToPlace);
-        
-        this.avalableItemPool.push(itemToPlace.duplicate());
-        
+    Game.prototype.addHazard = function(toAdd) { this.trackedHazards.add(toAdd); };
+    Game.prototype.removeHazard = function(toKill) { this.trackedHazards.remove(toKill); };
+    Game.prototype.addItemToPool = function(item,count) {
+        count = count || 1;
+        for(var i = 0 ;i<count;i++) {
+            this.avalableItemPool.push(item.duplicate());
+        }
+    };
+    Game.prototype.foreachCell = function(operation) {
+        for(var i=0;i<this.size.x;i++) {
+            for(var j=0;j<this.size.y;j++) {
+                operation(this.Grid[i][j]);
+            }
+        }
+    };
+    //public functions
+    Game.prototype.getTurnCount  = function() { return this.turns; };
+    Game.prototype.popFromQ = function() {
+        this.itemQ(0);
+        var ret = this.nextItemList.shift();
+        this.itemQChangedEvent.callAll();
+        return ret;
+    };
+    Game.prototype.itemQ         = function(index) {
+        while(this.nextItemList.length <= index) {
+            this.nextItemList.push(RandomElement(this.avalableItemPool).duplicate());
+        }
+        return this.nextItemList[index];
+    };
+    Game.prototype.QueryMove     = function(pos,itemToPlace) {
+        itemToPlace = itemToPlace || this.itemQ(0);
+        var thisCell = this.getCell(pos);
+        var ret = new Query(thisCell !== null);
+        ret.alreadyOccupied = thisCell.item !== null;
+        function pushToRet(cellToAdd) {
+            ret.cells.push(cellToAdd);
+            ret.positions.push(cellToAdd.pos);
+        }
+
+        var itemToCheck = itemToPlace.duplicate();
+        var sameType;
+        while( (sameType = this.MoveHelper(new HashSet(),this.getCell(pos),itemToCheck)).length >=3 ) {
+            itemToCheck.setToLevel(itemToCheck.getLevel()+1);
+            ret.levelBoost = itemToCheck.getLevel() - itemToPlace.getLevel();
+            sameType.map(pushToRet);
+        }
+        ret.valid = ret.positions.length > 2;
+        return ret;
+    };
+    Game.prototype.MoveHelper = function(visistedPool,current, item) {
+        item = item || current.item;
+        if(item === null) { throw new Error("must have item to compare with"); }
+        var ret = [];
+        if(current === null || visistedPool.contains(current)) { return ret; }
+
+        visistedPool.add(current);
+        ret.push(current);
+
+        var sameTypeNeighbors = Where(this.getCellNeighbors(current.pos),function(that) { return item.isEqual(that.item); });
         var potato = this;
-        if(preloadedQuery.valid) {
-            preloadedQuery.cells.map(function(meCell) {
-                if(!meCell.pos.isEqual(pos)) {
-                    itemToPlace.population += meCell.item.population;
-                    var old = meCell.item;
-                    meCell.item = null;
-                    potato.itemChangedEvent.callAll(meCell.pos,old,null);
-                }
+        sameTypeNeighbors.map(function(buddy) {
+            var buddyPals = potato.MoveHelper(visistedPool,buddy); // this is breaking :(
+            buddyPals.map(function(item) {
+               ret.push(item); 
             });
-            itemToPlace.population += preloadedQuery.levelBoost * this.ComboBoost;
-            itemToPlace.setToLevel(itemToPlace.getLevel()+preloadedQuery.levelBoost);
-        }
-        var old = thisCell.item;
-        thisCell.item = itemToPlace;
-        this.itemChangedEvent.callAll(thisCell.pos,old,itemToPlace);
-        this.avalableItemPool.push(itemToPlace.duplicate());
-    } else {
-        if(itemToPlace.type === ItemType.BlackHole) {
-            preloadedQuery = new Query(true);
-            preloadedQuery.alreadyOccupied = thisCell.item !== null;
-            thisCell.item = null;
-        }
-    }
+        });
+        return ret;
+    };
 
-    this.turns--;
-    this.update();
+    //pass
+    //ApplyMove(Query)
+    //ApplyMove(pos, optionalItem)
+    Game.prototype.ApplyMove     = function(pos,itemToPlace, preloadedQuery) {
+        if(pos instanceof(Query)) {
+            preloadedQuery = pos;
+            pos = preloadedQuery.cells[0].pos;
+        }
+        var thisCell = this.getCell(pos);
+        if(thisCell === null) { throw new Error("Must apply move to valid cell"); }
+        if(thisCell.item !== null) { console.log("warning placing ontop of existing cell"); }
+
+
+        itemToPlace = itemToPlace || this.popFromQ();
+
+        if(itemToPlace.type === ItemType.Housing) {
+            preloadedQuery = preloadedQuery || this.QueryMove(pos,itemToPlace);
+
+            this.avalableItemPool.push(itemToPlace.duplicate());
+
+            var potato = this;
+            if(preloadedQuery.valid) {
+                preloadedQuery.cells.map(function(meCell) {
+                    if(!meCell.pos.isEqual(pos)) {
+                        itemToPlace.population += meCell.item.population;
+                        var old = meCell.item;
+                        meCell.item = null;
+                        potato.itemChangedEvent.callAll(meCell.pos,old,null);
+                    }
+                });
+                itemToPlace.population += preloadedQuery.levelBoost * this.ComboBoost;
+                itemToPlace.setToLevel(itemToPlace.getLevel()+preloadedQuery.levelBoost);
+                this.populationChangedEvent.callAll();
+            }
+            var old = thisCell.item;
+            thisCell.item = itemToPlace;
+            this.itemChangedEvent.callAll(thisCell.pos,old,itemToPlace);
+            this.avalableItemPool.push(itemToPlace.duplicate());
+        } else {
+            if(itemToPlace.type === ItemType.BlackHole) {
+                preloadedQuery = new Query(true);
+                preloadedQuery.alreadyOccupied = thisCell.item !== null;
+                thisCell.item = null;
+            }
+        }
+
+        this.turns--;
+        this.update();
+
+        return preloadedQuery;
+    };
+    //pass x,y or pos
+    Game.prototype.getCell       = function(x,y) {
+        var pos = y === undefined ? x : new Coord(x,y);
+        if(pos.withinBox(this.getDims())) { return this.Grid[pos.x][pos.y]; }
+        return null;
+    };
+    Game.prototype.getCellNeighbors = function(cellPos) {
+        var temp = null;
+        var ret = [];
+        temp = this.getCell(cellPos.add(new Coord( 1, 0))); if(temp !== null) { ret.push(temp); }
+        temp = this.getCell(cellPos.add(new Coord( 0, 1))); if(temp !== null) { ret.push(temp); }
+        temp = this.getCell(cellPos.add(new Coord(-1, 0))); if(temp !== null) { ret.push(temp); }
+        temp = this.getCell(cellPos.add(new Coord( 0,-1))); if(temp !== null) { ret.push(temp); }
+        return ret;
+    };
+    Game.prototype.getPopulation = function() {
+        var ret = 0;
+        this.foreachCell(function(cell) {
+            ret += cell.item !== null ? cell.item.population : 0;
+        });
+        return ret;
+    };
     
-    this.populationChangedEvent.callAll();
-
-    return preloadedQuery;
-};
-Game.prototype.getCell       = function(pos) {
-    if(pos.withinBox(this.getDims())) { return this.Grid[pos.x][pos.y]; }
-    return null;
-};
-Game.prototype.getCellNeighbors = function(cellPos) {
-    var temp = null;
-    var ret = [];
-    temp = this.getCell(cellPos.add(new Coord( 1, 0))); if(temp !== null) { ret.push(temp); }
-    temp = this.getCell(cellPos.add(new Coord( 0, 1))); if(temp !== null) { ret.push(temp); }
-    temp = this.getCell(cellPos.add(new Coord(-1, 0))); if(temp !== null) { ret.push(temp); }
-    temp = this.getCell(cellPos.add(new Coord( 0,-1))); if(temp !== null) { ret.push(temp); }
-    return ret;
-};
-Game.prototype.getPopulation = function() {
-    var ret = 0;
-    this.foreachCell(function(cell) {
-        ret += cell.item !== null ? cell.item.population : 0;
-    });
-    return ret;
-};
-
-
-
-
-
-Game.prototype.update = function() {
-    var potato = this;
-    this.spawners.map(function(item) {
-        var newHazard = item.updateTurns();
-        if(newHazard !== null) {
-            potato.addHazard(newHazard);
-            potato.hazardSpawnedEvent.callAll(newHazard.pos,newHazard);
-        }
-    });
-    this.trackedHazards.foreachInSet(function(item) {
-        if(item === null) return;
-        var oldPos = item.pos;
-        item.pos = item.pos.add(item.direction);
-        potato.hazardMovedEvent(oldPos,item.pos);
-        var cell = potato.getCell(item.pos);
-        cell = new Cell();
-        if(cell !== null && cell.item !== null && cell.item.type === ItemType.Housing) {
-            //hazard beats item
-            var changed = false;
-            while(item.getLevel() > 0 && cell.item.getLevel() > 0) {
-                item.decreaseLevel();
-                cell.item.decreaseLevel();
-                changed = true;
-            }
-            if(changed) {
-                if(cell.item.getLevel() === 0) {
-                    var oldItem = cell.item;
-                    cell.item = null;
-                    potato.itemChangedEvent.callAll(oldItem.pos,oldItem,cell.item);
+    Game.prototype.update = function() {
+        var potato = this;
+        this.trackedHazards.foreachInSet(function(item) {
+            var oldPos = item.pos;
+            item.pos = item.pos.add(item.direction);
+            potato.hazardMovedEvent.callAll(oldPos,item.pos);
+            var cell = potato.getCell(item.pos);
+            if(cell !== null && cell.item !== null && cell.item.type === ItemType.Housing) {
+                //hazard beats item
+                var changed = false;
+                while(item.getLevel() > 0 && cell.item.getLevel() > 0) {
+                    item.decreaseLevel();
+                    cell.item.decreaseLevel();
+                    changed = true;
                 }
-                if(item.getLevel() === 0) {
-                    potato.hazardRemovedEvent.callAll(item.pos,item);
-                    potato.removeHazard(item);
+                if(changed) {
+                    if(cell.item.getLevel() === 0) {
+                        var oldItem = cell.item;
+                        cell.item = null;
+                        potato.itemChangedEvent.callAll(oldItem.pos,oldItem,cell.item);
+                    }
                 }
             }
-        } 
-    });
-};
+            item.decreaseLevel();
+            if(item.getLevel() <= 0) {
+                potato.hazardRemovedEvent.callAll(item.pos,item);
+                potato.removeHazard(item);
+            }
+        });
+        this.spawners.map(function(item) {
+            var newHazard = item.updateTurns();
+            if(newHazard !== null) {
+                potato.addHazard(newHazard);
+                potato.hazardSpawnedEvent.callAll(newHazard.pos,newHazard);
+            }
+        });
+    };
+    
+    return Game;
+}());
 
 
 
@@ -1166,36 +1180,36 @@ var MessageTicker = (function(){
 }());
 //endregion
 //region HUDOBJECT
-var terrainSprite;
 var allGraphic = [];
+var numWorlds = 1;
+var numStatics = 2;
+var numElements = 6;
+var staticBuf = numWorlds;
+var elementBuf = numWorlds+numStatics;
+var hazardBuf = numWorlds+numStatics+numElements;
 
 function Square(pos,dim){
+    this.pos = pos;
+    this.dim = dim;
+    this.misc = 0;
     
-    this.graphic = terrainSprite.clone();
-    this.graphic.x = pos.x;
-    this.graphic.y = pos.y;
-    this.graphic.scaleX = dim.x/128;
-    this.graphic.scaleY = dim.y/128;
-    this.isPlaceable = true;
-    this.item = null;
-    this.level=0;
-    
-    this.upgrade = function() {
-        this.level++;
-        if(this.level>5){this.level=5;}
-        this.item = allGraphic[this.level].clone();
+    this.changeItem = function(container,newIndex) {
+        container.removeChild(this.graphic);
+        this.fill(container,newIndex);
     };
-    this.fill = function(pos,dim){
-        this.item.x = pos.x;
-        this.item.y = pos.y;
-        this.item.scaleX = dim.x/128;
-        this.item.scaleY = dim.y/128;
+    this.fill = function(container,index){
+        this.graphic = allGraphic[index].clone();
+        this.graphic.x = this.pos.x;
+        this.graphic.y = this.pos.y;
+        this.graphic.scaleX = this.dim.x/128;
+        this.graphic.scaleY = this.dim.y/128;
+        container.addChild(this.graphic);
     };
 }
 
 function Grid(container, cells, pos, dim){
-    this.dim = new Coord(dim.x,dim.y);
-    this.pos = new Coord(pos.x,pos.y);
+    this.dim = dim;
+    this.pos = pos;
     this.cells = new Coord(cells.y,cells.y);
     this.squares = [];
     for(var i=0; i<cells.x; i++){
@@ -1204,7 +1218,7 @@ function Grid(container, cells, pos, dim){
             var spos = new Coord(i*(dim.x/cells.x)+pos.x,j*(dim.y/cells.y)+pos.y);
             var sdim = new Coord(dim.x/cells.x,dim.y/cells.y);
             this.squares[i][j] = new Square(spos,sdim);
-            container.addChild(this.squares[i][j].graphic);
+            this.squares[i][j].fill(container,0);
         }
     }
     
@@ -1212,40 +1226,19 @@ function Grid(container, cells, pos, dim){
         
     };
     
-    this.place = function(container,i,lev){
-        if(this.squares[i.x][i.y].isPlaceable===false){return false;}
-        this.squares[i.x][i.y].isPlaceable=false;
-        if(lev<0)lev=0;
-        if(lev>5)lev=5;
-        this.squares[i.x][i.y].level = lev;
-        this.squares[i.x][i.y].item = allGraphic[lev].clone();
-            var spos = new Coord(i.x*(dim.x/cells.x)+pos.x,i.y*(dim.y/cells.y)+pos.y);
-            var sdim = new Coord(dim.x/cells.x,dim.y/cells.y);
-            this.squares[i.x][i.y].fill(spos,sdim);
-        container.addChild(this.squares[i.x][i.y].item);
-        return true;
+    this.placeElement = function(container,i,lev){
+        this.squares[i.x][i.y].changeItem(container,lev+elementBuf);
     };
     
-    this.upgrade = function(container,i){
-        container.removeChild(this.squares[i.x][i.y].item);
-        this.squares[i.x][i.y].upgrade();
-            var spos = new Coord(i.x*(dim.x/cells.x)+pos.x,i.y*(dim.y/cells.y)+pos.y);
-            var sdim = new Coord(dim.x/cells.x,dim.y/cells.y);
-            this.squares[i.x][i.y].fill(spos,sdim);
-        container.addChild(this.squares[i.x][i.y].item);
+    this.placeStatic = function(container,i,type){
+        this.squares[i.x][i.y].changeItem(container,type+staticBuf);
     };
     
     this.clear = function(container,i){
-        container.removeChild(this.squares[i.x][i.y].item);
-        this.squares[i.x][i.y].item=null;
-        this.squares[i.x][i.y].level=0;
-        this.squares[i.x][i.y].isPlaceable=true;
+        this.squares[i.x][i.y].changeItem(container,0);
     };
     this.placeHazard = function(container,i,haz){
-        this.squares[i.x][i.y].item = allGraphic[haz].clone();
-        var spos = new Coord(i.x*(dim.x/cells.x)+pos.x,i.y*(dim.y/cells.y)+pos.y);
-        var sdim = new Coord(dim.x/cells.x,dim.y/cells.y);
-        this.squares[i.x][i.y].fill(spos,sdim);
+        this.squares[i.x][i.y].changeItem(container,haz+hazardBuf);
     };
 }
 
@@ -1256,7 +1249,7 @@ function updateQueue(container){
         if(i===0){mod=2;}
         var lev = game.itemQ(i).getLevel();
         if(lev>5){lev=5;}
-        elementQueue[i] = allGraphic[lev].clone();
+        elementQueue[i] = allGraphic[lev+elementBuf].clone();
         elementQueue[i].x = 675-25*mod;
         elementQueue[i].y = 550-60*(3-i)-50*mod;
         elementQueue[i].scaleX = 50*mod/128;
@@ -1303,14 +1296,35 @@ var stars = [];
 
 function initGameScene(container) {
 //region UI init
-    terrainSprite = loadImage("path");
-    allGraphic[1] = loadImage("pop1");
-    allGraphic[2] = loadImage("pop2");
-    allGraphic[3] = loadImage("pop3");
-    allGraphic[4] = loadImage("pop4");
-    allGraphic[5] = loadImage("pop5");
-    allGraphic[0] = loadImage("bolt");
-    allGraphic[6] = loadImage("mantis");
+    var world = 2;
+    if(world==1){
+        allGraphic[0] = loadImage("purPath");
+        allGraphic[1] = loadImage("purTree");
+        allGraphic[2] = loadImage("purRock");
+        allGraphic[3] = loadImage("bolt");
+        allGraphic[4] = loadImage("purPop1");
+        allGraphic[5] = loadImage("purPop2");
+        allGraphic[6] = loadImage("purPop3");
+        allGraphic[7] = loadImage("purPop4");
+        allGraphic[8] = loadImage("purPop5");
+        allGraphic[9] = loadImage("mantis");
+        allGraphic[10] = loadImage("fire");
+        container.addChild(loadImage("purBackground"));
+    }
+    else if(world==2){
+        allGraphic[0] = loadImage("bluPath");
+        allGraphic[1] = loadImage("bluTree");
+        allGraphic[2] = loadImage("bluRock");
+        allGraphic[3] = loadImage("bolt");
+        allGraphic[4] = loadImage("bluPop1");
+        allGraphic[5] = loadImage("bluPop2");
+        allGraphic[6] = loadImage("bluPop3");
+        allGraphic[7] = loadImage("bluPop4");
+        allGraphic[8] = loadImage("bluPop5");
+        allGraphic[9] = loadImage("creeper");
+        allGraphic[10] = loadImage("tsunami");
+        container.addChild(loadImage("bluBackground"));
+    }
     
     leftBar = new createjs.Shape();
     leftBar.graphics.beginFill("#333").drawRect(0,0,5,600);
@@ -1369,11 +1383,18 @@ QueueBorder[i].graphics.setStrokeStyle(5,"round").beginStroke("#333").drawRect(6
             updateStars(popul/goalAmount);
         });
         game.itemChangedEvent.addCallBack(function(pos,oldItem,newItem){
-            if(oldItem!==null){grid.clear(container,pos);}
-            if(newItem!==null){grid.place(container,pos,newItem.getLevel());}
+            if(newItem!==null)grid.placeElement(container,pos,newItem.getLevel());
+            else grid.clear(container,pos);
         });
         game.hazardSpawnedEvent.addCallBack(function(pos,hazard){
-            grid.placeHazard(container,pos,6);
+            grid.placeHazard(container,pos,0);
+        });
+        game.hazardMovedEvent.addCallBack(function(oldPos,newPos){
+            grid.clear(container,oldPos);
+            grid.placeHazard(container,newPos,0);
+        });
+        game.hazardRemovedEvent.addCallBack(function(pos,hazard){
+            grid.clear(container,pos); 
         });
         
 //endregion
@@ -1429,32 +1450,27 @@ QueueBorder[i].graphics.setStrokeStyle(5,"round").beginStroke("#333").drawRect(6
         grid = new Grid(container, game.getDims(),new Coord(30,50),new Coord(500,500));
 //endregion
     };
+    
     GameStates.Game.mouseDownEvent = function(e){
         e=e;
-        //if(mouse.pos.sub(grid.pos).withinBox(grid.dim)){
-        //    var index = mouse.pos.sub(grid.pos).div(grid.dim.x/grid.cells.x);
-        //    var flooredIndex = index.floor();
-        //    var queryInfo = game.QueryMove(flooredIndex);
-        //}
+        
     };
+    
     GameStates.Game.mouseUpEvent = function(e){
         e=e;
         if(mouse.pos.sub(grid.pos).withinBox(grid.dim)){
             var index = mouse.pos.sub(grid.pos).div(grid.dim.x/grid.cells.x);
             var flooredIndex = index.floor();
-            if(game.itemQ(0).type!=ItemType.BlackHole){
-                var upcomingLevel = game.itemQ(0).getLevel();
-                if(upcomingLevel>5){upcomingLevel=5;}
-                var queryInfo = game.QueryMove(flooredIndex,game.itemQ(0));
+            var queryInfo = game.QueryMove(flooredIndex,game.itemQ(0));
+            if(game.itemQ(0).type==ItemType.BlackHole&&queryInfo.alreadyOccupied){                   grid.clear(container,flooredIndex);
                 game.ApplyMove(flooredIndex,game.popFromQ(),queryInfo);
             }
-            else{
-                var qeryInfo = game.QueryMove(flooredIndex,game.itemQ(0));
-                game.ApplyMove(flooredIndex,game.popFromQ(),qeryInfo);
-                grid.clear(container,flooredIndex);
+            else if(!queryInfo.alreadyOccupied){
+                game.ApplyMove(flooredIndex,game.popFromQ(),queryInfo);
             }
         }
     };
+    
     GameStates.Game.update = function() {
         turns.text=game.getTurnCount();
         if(game.getTurnCount()===0){
