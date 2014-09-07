@@ -194,6 +194,7 @@ var manifest = [
     {src:"images/Barrier.png", id:"Barrier"},
     {src:"images/stars.png", id:"Stars"},
     {src:"images/Hazard/LightningBolt.png", id:"bolt"},
+    {src:"images/Hazard/mantisBlock.png", id:"mantis"},
     {src:"images/Population/purplePop1.png", id:"pop1"},
     {src:"images/Population/purplePop2.png", id:"pop2"},
     {src:"images/Population/purplePop3.png", id:"pop3"},
@@ -575,20 +576,27 @@ function initLoadingScreen() {
 /*
  * Hash table developed by Anthony Corbin
 //*/
-var HashTable = (function() {
+var HashTable, HashMap;
+ HashTable = HashMap = (function() {
 	function HashTable() {
 		this.pairs = [];
 		this.orderedPairs = [];
 	}
-	HashTable.prototype.hashObject = function (value) {
-		return (typeof value) + ' ' + (value instanceof Object ? (value.__hash || (value.__hash = ++arguments.callee.current)) : value.toString());
-	};
-	HashTable.prototype.hashObject.current = 0;
 	function KeyValuePair(hash, key, val) {
 		this.hash = hash;
 		this.key = key;
 		this.val = val;
+        this.markedForDel = false;
 	}
+    
+    var hasher = function (value) {
+        return (typeof value) + ' ' + (value instanceof Object ? (value.__hash || (value.__hash = ++arguments.callee.current)) : value.toString());
+    };
+    hasher.current = 0;
+    
+    this.numOfActiveIterations = 0;
+    
+    HashTable.prototype.hashObject = hasher;
 	KeyValuePair.prototype.containsKey = function (key) { return this.key === key; };
 	KeyValuePair.prototype.containsVal = function (val) { return this.val === val; };
 	HashTable.prototype.add = function (newKey, newVal) {
@@ -610,14 +618,21 @@ var HashTable = (function() {
 		var i, hash;
 		if (this.containsKey(key)) {
 			hash = this.hashObject(key);
-			for (i = 0; i < this.orderedPairs.length; i++) {
-				if (this.orderedPairs[i] === this.pairs[hash]) {
-					this.orderedPairs.splice(i, 1);
-					this.pairs[hash] = null;
-					return;
-				}
-			}
-			throw new Error("contain returned true, but key not found");
+            this.pairs[hash].markedForDel = true;
+            var del = function del() {
+                if(this.numOfActiveIterations > 0) {
+                    setTimeout(del,10);
+                    return;
+                }
+                for (i = 0; i < this.orderedPairs.length; i++) {
+                    if (this.orderedPairs[i] === this.pairs[hash]) {
+                        this.orderedPairs.splice(i, 1);
+                        this.pairs[hash] = null;
+                        return;
+                    }
+                }
+                throw new Error("contain returned true, but key not found");
+            };
 		}
 	};
 	HashTable.prototype.containsKey = function (key) {
@@ -635,10 +650,15 @@ var HashTable = (function() {
 	HashTable.prototype.size = function () { return this.orderedPairs.length; };
 	//pass in function(key,val)
 	HashTable.prototype.foreachInSet = function (theirFunction) {
+        this.numOfActiveIterations++;
 		this.orderedPairs.map(function (item) {
-			theirFunction(item.key, item.val);
+            if(!item.markedForDel) {
+                theirFunction(item.key, item.val);
+            }
 		});
+        this.numOfActiveIterations--;
 	};
+    HashTable.prototype.map = HashTable.prototype.foreachInSet;
 	return HashTable;
 }());
 
@@ -702,6 +722,7 @@ var HashSet = (function() {
 	HashSet.prototype.foreachInSet = function (theirFunction) {
 		return this.myTable.foreachInSet(function(key,val) { theirFunction(key); });
 	};
+    HashSet.prototype.map = HashSet.prototype.foreachInSet;
     HashSet.prototype.toList = function () {
         var ret = [];
 		this.foreachInSet(function (item) {
@@ -1118,6 +1139,7 @@ var MessageTicker = (function(){
         }
     };
 }());
+//endregion
 
 //region HUDOBJECT
 var terrainSprite;
@@ -1195,6 +1217,13 @@ function Grid(container, cells, pos, dim){
         this.squares[i.x][i.y].level=0;
         this.squares[i.x][i.y].isPlaceable=true;
     };
+    
+    this.placeHazard = function(container,pos,haz){
+        this.squares[i.x][i.y].item = allGraphic[haz].clone();
+        var spos = new Coord(i.x*(dim.x/cells.x)+pos.x,i.y*(dim.y/cells.y)+pos.y);
+        var sdim = new Coord(dim.x/cells.x,dim.y/cells.y);
+        this.squares[i.x][i.y].fill(spos,sdim);
+    };
 }
 
 function updateQueue(container){
@@ -1258,6 +1287,7 @@ function initGameScene(container) {
     allGraphic[4] = loadImage("pop4");
     allGraphic[5] = loadImage("pop5");
     allGraphic[0] = loadImage("bolt");
+    allGraphic[6] = loadImage("mantis");
     
     leftBar = new createjs.Shape();
     leftBar.graphics.beginFill("#333").drawRect(0,0,5,600);
@@ -1320,8 +1350,12 @@ QueueBorder[i].graphics.setStrokeStyle(5,"round").beginStroke("#333").drawRect(6
             if(newItem!==null){grid.place(container,pos,newItem.getLevel());}
         });
         game.hazardSpawnedEvent.addCallBack(function(pos,hazard){
-            
+            grid.placeHazard(container,pos,6);
         });
+//endregion
+//region Game Setup
+        game.addSpawner(new Coord(4,4),new Spawner(new Coord(4,4)));
+        
 //endregion
 //region UI setup
         turnsLabel = new createjs.Text("Turns: ", "italic 20px Orbitron", "#FFF");
