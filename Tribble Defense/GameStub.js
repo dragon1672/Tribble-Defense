@@ -620,7 +620,7 @@ var Game = (function() {
         this.trackedHazards.foreachInSet(function(item) {
             var oldPos = item.pos;
             item.pos = item.pos.add(item.direction);
-            potato.hazardMovedEvent.callAll(oldPos,item.pos);
+            potato.hazardMovedEvent.callAll(oldPos,item.pos,item);
             var cell = potato.getCell(item.pos);
             if(cell !== null && cell.item !== null && cell.item.type === ItemType.Housing) {
                 //hazard beats item
