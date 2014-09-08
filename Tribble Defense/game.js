@@ -1132,13 +1132,6 @@ var Game = (function() {
     
     Game.prototype.update = function() {
         var potato = this;
-        this.spawners.map(function(item) {
-            var newHazard = item.updateTurns();
-            if(newHazard !== null) {
-                potato.addHazard(newHazard);
-                potato.hazardSpawnedEvent.callAll(newHazard.pos,newHazard);
-            }
-        });
         this.trackedHazards.foreachInSet(function(item) {
             var oldPos = item.pos;
             item.pos = item.pos.add(item.direction);
@@ -1161,9 +1154,16 @@ var Game = (function() {
                 }
             }
             item.decreaseLevel();
-            if(item.getLevel() <= 0 || !this.movingInBounds(item.pos,item.direction)) {
+            if(item.getLevel() <= 0 || !potato.movingInBounds(item.pos,item.direction)) {
                 potato.hazardRemovedEvent.callAll(item.pos,item);
                 potato.removeHazard(item);
+            }
+        });
+        this.spawners.map(function(item) {
+            var newHazard = item.updateTurns();
+            if(newHazard !== null) {
+                potato.addHazard(newHazard);
+                potato.hazardSpawnedEvent.callAll(newHazard.pos,newHazard);
             }
         });
     };
@@ -1263,23 +1263,25 @@ function Square(pos,dim){
     };
 }
 
-function Agent(container,pos,dim,type,lifespan){
+function Agent(container,coords,pos,dim,type,lifespan){
     this.pos = pos;
+    this.coords = coords;
     this.dim = dim;
     this.type = type;
     this.lifespan = lifespan;
-    this.life = lifespan;
     this.graphic = allGraphic[type+hazardBuf].clone();
     this.graphic.x = this.pos.x;
     this.graphic.y = this.pos.y;
     this.graphic.scaleX = this.dim.x/128;
     this.graphic.scaleY = this.dim.y/128;
+    this.offset = 0;
     container.addChild(this.graphic);
     
-    this.move = function(newPos){
-        this.graphic.x = newPos.x;
-        this.graphic.y = newPos.y;
-        this.age();
+    this.move = function(newCoords,newPos,newAge){
+        this.coords =newCoords;
+        this.age(newAge);
+        this.graphic.x = newPos.x+this.offset;
+        this.graphic.y = newPos.y+this.offset;
     };
     
     this.destruct = function(container){
@@ -1287,10 +1289,10 @@ function Agent(container,pos,dim,type,lifespan){
         this.graphic=null;
     };
     
-    this.age = function(){
-        this.life--;
-        this.graphic.scaleX = this.dim.x/128*this.life/this.lifespan;
-        this.graphic.scaleY = this.dim.y/128*this.life/this.lifespan;
+    this.age = function(newAge){
+        this.graphic.scaleX = this.dim.x/(128*(newAge/this.lifespan));
+        this.graphic.scaleY = this.dim.y/(128*(newAge/this.lifespan));
+        this.offset = (128*this.graphic.scaleX)/2;
     };
 }
 
@@ -1341,17 +1343,16 @@ function Grid(container, cells, pos, dim){
     this.spawnHazard = function(container,i,haz,lifespan){
         var spos = new Coord(i.x*(dim.x/cells.x)+pos.x,i.y*(dim.y/cells.y)+pos.y);
         var sdim = new Coord(dim.x/cells.x,dim.y/cells.y);
-        this.agents.add( new Agent(container,spos,sdim,haz,lifespan));
+        this.agents.add( new Agent(container,i,spos,sdim,haz,lifespan));
     };
-    this.moveHazard = function(oldPos,newPos){
+    this.moveHazard = function(oldPos,newPos,newAge){
         var spos = new Coord(newPos.x*(dim.x/cells.x)+pos.x,newPos.y*(dim.y/cells.y)+pos.y);
-        this.hazardAt(oldPos).move(spos);
+        this.hazardAt(oldPos).move(newPos,spos,newAge);
     };
     this.hazardAt = function(i){
-        var spos = new Coord(i.x*(dim.x/cells.x)+pos.x,i.y*(dim.y/cells.y)+pos.y);
         var ret = null;
         this.agents.foreachInSet(function(item) {
-            if(item.pos.isEqual(spos)){ ret = item;}
+            if(item.coords.isEqual(i)){ ret = item;}
         });
         return ret;
     };
@@ -1536,8 +1537,8 @@ QueueBorder[i].graphics.setStrokeStyle(5,"round").beginStroke("#333").drawRect(6
         game.hazardSpawnedEvent.addCallBack(function(pos,hazard){
             grid.spawnHazard(container,pos,grid.getHazardType(pos),hazard.level);
         });
-        game.hazardMovedEvent.addCallBack(function(oldPos,newPos){
-            grid.moveHazard(oldPos,newPos);
+        game.hazardMovedEvent.addCallBack(function(oldPos,newPos,hazard){
+            grid.moveHazard(oldPos,newPos,hazard.level);
         });
         game.hazardRemovedEvent.addCallBack(function(pos,hazard){
             grid.removeHazard(container,pos); 
