@@ -137,7 +137,7 @@ var FPS = 30;
         return function(button,onClickMethod) {
             button.gotoAndStop(title+"Up");
             button.on("click", onClickMethod);
-            button.on("mouseover", function(evt) { evt = evt; button.gotoAndStop(title+"Over"); });
+            button.on("mouseover", function(evt) { evt = evt;createjs.Sound.play("tinyTick"); button.gotoAndStop(title+"Over"); });
             button.on("mouseout",  function(evt) { evt = evt; button.gotoAndStop(title+"Up"); });
             button.on("mousedown", function(evt) { evt = evt; button.gotoAndStop(title+"Down"); });
             return button;
@@ -182,7 +182,10 @@ var manifest = [
     {src:"images/Static/Title.png", id:"title"},
     {src:"images/Static/LevelSelection.png", id:"levelSelect"},
     {src:"images/Static/Instructions.png", id:"instructions"},
-    {src:"images/Static/GameOverPurplePlanet.png", id:"gameover"},
+    {src:"images/Static/GameOverPurplePlanet.png", id:"purGameover"},
+    {src:"images/Static/GameOverBluePlanet.png", id:"bluGameover"},
+    {src:"images/Static/WinPurplePlanet.png", id:"purWin"},
+    {src:"images/Static/WinBluePlanet.png", id:"bluWin"},
     {src:"images/Static/Credits.png", id:"credits"},
     {src:"images/Terrain/BackgroundBasePurple.png", id:"purBackground"},
     {src:"images/Terrain/BackgroundBaseBlue.png", id:"bluBackground"},
@@ -198,6 +201,7 @@ var manifest = [
     {src:"images/SpeakerOn.png", id:"SpeakerOn"},
     {src:"audio/StartScreen.mp3", id:"StartScreen"},
     {src:"images/SpeakerOff.png", id:"SpeakerOff"},
+    {src:"audio/TinyTick.mp3", id:"tinyTick"},
     {src:"images/stars.png", id:"Stars"},
     {src:"images/Hazard/LightningBolt.png", id:"bolt"},
     {src:"images/Hazard/tsunamiBlock.png", id:"tsunami"},
@@ -476,7 +480,6 @@ function init() {
     GameStates.StartScreen.container.addChild(  loadImage("title")        );
     GameStates.Instructions.container.addChild( loadImage("instructions") );
     GameStates.Credits.container.addChild(      loadImage("credits") );
-    GameStates.GameOver.container.addChild(     loadImage("gameover")     );
     stage.addChild(GameStates.EMPTY.container);         GameStates.EMPTY.masterDisable();
     stage.addChild(GameStates.StartScreen.container);   GameStates.StartScreen.masterDisable();
     stage.addChild(GameStates.Instructions.container);  GameStates.Instructions.masterDisable();
@@ -510,6 +513,9 @@ function init() {
     
     //init start
     {
+        GameStates.StartScreen.enable = function() {
+            backgroundMusic.setSoundFromString("StartScreen",true);
+        };
         var BTN = [];
         BTN.push(CreateButtonFromSprite(spriteSheets.makeButton(),"play",    function() { CurrentGameState = GameStates.Game;         }));
         BTN.push(CreateButtonFromSprite(spriteSheets.makeButton(),"instruct",function() { CurrentGameState = GameStates.Instructions; }));
@@ -544,22 +550,40 @@ function init() {
     initGameScene(GameStates.Game.container);
     //init gameOver
     {
-        var finalScore = new createjs.Text("Score:\n"+score, "50px Arial", "#000");
+        
+        var finalScore = new createjs.Text("Score:\n"+score, "italic 36px Orbitron", "#FFF");
         finalScore.x = stage.canvas.width / 2 - 50;
         finalScore.y = stage.canvas.height / 2;
-        GameStates.GameOver.container.addChild(finalScore);
+        var btns = [];
         
-        var btn = spriteSheets.makeButton();
-        CreateButtonFromSprite(btn,"menu",function() { CurrentGameState = GameStates.StartScreen; });
-        
-        GameStates.GameOver.container.addChild(btn);
         GameStates.GameOver.enable = function() {
-        backgroundMusic.setSoundFromString("Failure",true);
+            
+            btns.push(CreateButtonFromSprite(spriteSheets.makeButton(),"menu",function() { CurrentGameState = GameStates.StartScreen; }));
+            btns[0].x = 200;
+            btns[0].y = 400;
+            if(currentLevel<levels.length-1){
+                btns.push(CreateButtonFromSprite(spriteSheets.makeButton(),"play",function() { if(victory)currentLevel++;CurrentGameState = GameStates.Game; }));
+                btns[1].x = 600;
+                btns[1].y = 400;
+            }
+            backgroundMusic.setSoundFromString("Failure",true);
+            GameStates.GameOver.container.addChild(finalScore);
+            btns.map(function(item) {
+                GameStates.GameOver.container.addChild(item);
+            });
         };
-        var btns = [btn];
-        stackButtons(btns,10);
+        
+        
         GameStates.GameOver.update = function() {
             finalScore.text = "Score:\n"+score;
+        };
+        GameStates.GameOver.disable = function() {
+            GameStates.GameOver.container.removeChild(finalScore);
+            btns.map(function(item) {
+                GameStates.GameOver.container.removeChild(item);
+            });
+            btns.pop();
+            btns.pop();
         };
     }
     CurrentGameState = GameStates.StartScreen;
@@ -1103,7 +1127,6 @@ var Game = (function() {
                 });
                 itemToPlace.population += preloadedQuery.levelBoost * this.ComboBoost;
                 itemToPlace.setToLevel(itemToPlace.getLevel()+preloadedQuery.levelBoost);
-                this.populationChangedEvent.callAll();
             }
             var old = thisCell.item;
             thisCell.item = itemToPlace;
@@ -1125,6 +1148,7 @@ var Game = (function() {
 
         this.turns--;
         this.update();
+        this.populationChangedEvent.callAll();
 
         return preloadedQuery;
     };
@@ -1259,22 +1283,7 @@ var Game = (function() {
 
 //endregion
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+//region Ticker
 //message ticker
 
 
@@ -1307,6 +1316,7 @@ var MessageTicker = (function(){
         }
     };
 }());
+//endregion
 //endregion
 
 //region HUDOBJECT
@@ -1412,6 +1422,7 @@ function Grid(container, cells, pos, dim){
     };
     
     this.placeSpawner = function(container,i,haz){
+        if(haz>=numHazards)haz = Math.floor(Math.random()*2+1)-1;
         this.squares[i.x][i.y].changeItem(container,haz+spawnerBuf);
         this.squares[i.x][i.y].misc=haz+1;
     };
@@ -1473,7 +1484,10 @@ function Grid(container, cells, pos, dim){
     };
 }
 
-function updateStars(ratio){  
+function updateStars(ratio){ 
+    stars[0].gotoAndStop("empty");
+    stars[1].gotoAndStop("empty");
+    stars[2].gotoAndStop("empty");
     if(ratio>0.125)stars[0].gotoAndStop("quarter");
     if(ratio>0.25 )stars[0].gotoAndStop("half");
     if(ratio>0.375)stars[0].gotoAndStop("quarter3");
@@ -1491,7 +1505,7 @@ function updateStars(ratio){
 //endregion
 
 //region GAME
-var currentLevel = 1;
+var currentLevel = 0;
 var levels = [];
 var QueueContainer = [];
 var QueueBorder = [];
@@ -1508,13 +1522,15 @@ var bottomBar;
 var bottomBarBorder;
 var leftBar;
 var stars = [];
+var victory;
 
-function Level(title,world,turns,goalamount,gameSize){
+function Level(title,world,turns,goalamount,gameSize,numStatic){
     this.world = world;
     this.title = title;
     this.turns = turns;
     this.goalAmount = goalamount;
     this.gameSize = gameSize;
+    this.numStatic = numStatic;
     
     this.enable = function(container){
         if(this.world==1){
@@ -1589,7 +1605,7 @@ function Level(title,world,turns,goalamount,gameSize){
         
         this.grid = new Grid(container, this.game.getDims(),new Coord(30,50),new Coord(500,500));
         
-        this.grid.randomStatic(container,3);
+        this.grid.randomStatic(container,this.numStatic);
         
         for(var i=0; i<this.game.spawners.length; i++){
             if(this.game.spawners[i].pos.withinBox(this.game.getDims())){
@@ -1636,14 +1652,34 @@ function Level(title,world,turns,goalamount,gameSize){
     };
     
     this.update = function(){
-        turns.text=this.game.getTurnCount();
+        turnsText.text=this.game.getTurnCount();
         if(this.game.getTurnCount()===0){
+            if(this.game.getPopulation()<this.goalAmount){
+                if(this.world==1){
+                    GameStates.GameOver.container.addChild(loadImage("purGameover"));
+                }
+                else if(this.world==2){
+                    GameStates.GameOver.container.addChild(loadImage("bluGameover"));
+                }
+                victory=false;
+            }
+            else{
+                if(this.world==1){
+                    GameStates.GameOver.container.addChild(loadImage("purWin"));
+                }
+                else if(this.world==2){
+                    GameStates.GameOver.container.addChild(loadImage("bluWin"));
+                }
+                victory=true;
+            }
             CurrentGameState=GameStates.GameOver;
         }  
     };
+    
     this.disable = function(container){
         container.removeChild(this.background);
-        this.grid.destruct(container);  
+        this.grid.destruct(container);
+        this.game = null;
     };
 }
 
@@ -1710,27 +1746,76 @@ function initGameScene(container) {
     goal.y = 100; 
     
     
-    levels[0] = new Level("Welcome to home!", 2 , 45, 80, new Coord(6,6));
-    levels[0].setSpawners = function(){
-        levels[0].game.addSpawner(new Spawner(5,8,3,5));
-        levels[0].game.spawners[0].pos = new Coord(4,4);
-        levels[0].game.spawners[0].directions[0] = new Coord(0,-1);
-        levels[0].game.spawners[0].directions[1] = new Coord(-1,0);
-        levels[0].game.addSpawner(new Spawner(1,2,3,4));
-        levels[0].game.spawners[1].pos = new Coord(0,0);
-        levels[0].game.spawners[1].directions[0] = new Coord(0,1);
-        levels[0].game.spawners[1].directions[1] = new Coord(1,1);
+    levels[0] = new Level("Welcome", 1 , 15, 30, new Coord(3,3),0);
+    
+    levels[1] = new Level("Shrubs", 1 , 30, 60, new Coord(7,7),6);
+    
+    levels[2] = new Level("Hazards", 2 , 40, 80, new Coord(5,5),0);
+    levels[2].setSpawners = function(){
+        levels[2].game.addSpawner(new Spawner(5,8,2,3));
+        levels[2].game.spawners[0].pos = new Coord(2,2);
+        levels[2].game.spawners[0].directions[0] = new Coord(0,-1);
+        levels[2].game.spawners[0].directions[1] = new Coord(0,1);
+        levels[2].game.spawners[0].directions[2] = new Coord(1,-1);
+        levels[2].game.spawners[0].directions[3] = new Coord(1,1);
+        levels[2].game.spawners[0].directions[4] = new Coord(-1,-1);
+        levels[2].game.spawners[0].directions[5] = new Coord(-1,1);
+        levels[2].game.spawners[0].directions[6] = new Coord(1,0);
+        levels[2].game.spawners[0].directions[7] = new Coord(-1,0);
     };
-    levels[1] = new Level("HI", 1 , 40, 60, new Coord(6,6));
-    levels[1].setSpawners = function(){
-        levels[1].game.addSpawner(new Spawner(5,8,3,5));
-        levels[1].game.spawners[0].pos = new Coord(1,4);
-        levels[1].game.spawners[0].directions[0] = new Coord(0,-1);
-        levels[1].game.spawners[0].directions[1] = new Coord(1,0);
-        levels[1].game.addSpawner(new Spawner(1,2,3,4));
-        levels[1].game.spawners[1].pos = new Coord(3,3);
-        levels[1].game.spawners[1].directions[0] = new Coord(0,1);
-        levels[1].game.spawners[1].directions[1] = new Coord(1,1);
+    levels[3] = new Level("Challenge", 1 , 40, 80, new Coord(6,6),4);
+    levels[3].setSpawners = function(){
+        levels[3].game.addSpawner(new Spawner(5,8,3,5));
+        levels[3].game.spawners[0].pos = new Coord(1,4);
+        levels[3].game.spawners[0].directions[0] = new Coord(0,-1);
+        levels[3].game.spawners[0].directions[1] = new Coord(1,0);
+        levels[3].game.addSpawner(new Spawner(1,2,3,4));
+        levels[3].game.spawners[1].pos = new Coord(0,0);
+        levels[3].game.spawners[1].directions[0] = new Coord(0,1);
+        levels[3].game.spawners[1].directions[1] = new Coord(1,1);
+    };
+    levels[4] = new Level("Freedom", 2 , 999, 1, new Coord(10,10),10);
+    levels[4].setSpawners = function(){
+        levels[4].game.addSpawner(new Spawner(1,2,3,4));
+        levels[4].game.spawners[0].pos = new Coord(2,2);
+        levels[4].game.spawners[0].directions[0] = new Coord(0,-1);
+        levels[4].game.spawners[0].directions[1] = new Coord(0,1);
+        levels[4].game.spawners[0].directions[2] = new Coord(1,-1);
+        levels[4].game.spawners[0].directions[3] = new Coord(1,1);
+        levels[4].game.spawners[0].directions[4] = new Coord(-1,-1);
+        levels[4].game.spawners[0].directions[5] = new Coord(-1,1);
+        levels[4].game.spawners[0].directions[6] = new Coord(1,0);
+        levels[4].game.spawners[0].directions[7] = new Coord(-1,0);
+        levels[4].game.addSpawner(new Spawner(1,2,3,4));
+        levels[4].game.spawners[1].pos = new Coord(7,2);
+        levels[4].game.spawners[1].directions[0] = new Coord(0,-1);
+        levels[4].game.spawners[1].directions[1] = new Coord(0,1);
+        levels[4].game.spawners[1].directions[2] = new Coord(1,-1);
+        levels[4].game.spawners[1].directions[3] = new Coord(1,1);
+        levels[4].game.spawners[1].directions[4] = new Coord(-1,-1);
+        levels[4].game.spawners[1].directions[5] = new Coord(-1,1);
+        levels[4].game.spawners[1].directions[6] = new Coord(1,0);
+        levels[4].game.spawners[1].directions[7] = new Coord(-1,0);
+        levels[4].game.addSpawner(new Spawner(1,2,3,4));
+        levels[4].game.spawners[2].pos = new Coord(2,7);
+        levels[4].game.spawners[2].directions[0] = new Coord(0,-1);
+        levels[4].game.spawners[2].directions[1] = new Coord(0,1);
+        levels[4].game.spawners[2].directions[2] = new Coord(1,-1);
+        levels[4].game.spawners[2].directions[3] = new Coord(1,1);
+        levels[4].game.spawners[2].directions[4] = new Coord(-1,-1);
+        levels[4].game.spawners[2].directions[5] = new Coord(-1,1);
+        levels[4].game.spawners[2].directions[6] = new Coord(1,0);
+        levels[4].game.spawners[2].directions[7] = new Coord(-1,0);
+        levels[4].game.addSpawner(new Spawner(1,2,3,4));
+        levels[4].game.spawners[3].pos = new Coord(7,7);
+        levels[4].game.spawners[3].directions[0] = new Coord(0,-1);
+        levels[4].game.spawners[3].directions[1] = new Coord(0,1);
+        levels[4].game.spawners[3].directions[2] = new Coord(1,-1);
+        levels[4].game.spawners[3].directions[3] = new Coord(1,1);
+        levels[4].game.spawners[3].directions[4] = new Coord(-1,-1);
+        levels[4].game.spawners[3].directions[5] = new Coord(-1,1);
+        levels[4].game.spawners[3].directions[6] = new Coord(1,0);
+        levels[4].game.spawners[3].directions[7] = new Coord(-1,0);
     };
     
 //endregion
@@ -1783,7 +1868,6 @@ function initGameScene(container) {
     
     GameStates.Game.disable = function() {
         levels[currentLevel].disable(container);
-        score = pop.text;
         container.removeChild(leftBar);
         container.removeChild(topBarBorder);
         container.removeChild(topBar);

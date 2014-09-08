@@ -681,22 +681,7 @@ var Game = (function() {
 
 //endregion
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+//region Ticker
 //message ticker
 
 
@@ -729,3 +714,4 @@ var MessageTicker = (function(){
         }
     };
 }());
+//endregion
