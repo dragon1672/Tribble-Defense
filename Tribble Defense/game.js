@@ -632,13 +632,54 @@ function init() {
 }
 //progress bar will run anything listed here should only be animation stuff without using any images
 function initLoadingScreen() {
-    var circle = new createjs.Shape();
-    circle.graphics.beginFill("#A66").drawCircle(0, 0, 40);  //creates circle at 0,0, with radius of 40
-    circle.x = circle.y = 100;  //this just sets the x and y equal to 50
-    GameStates.Loading.container.addChild(circle);  //add the circle to the stage but it is not apparent until the stage is updated
+    function randomDir() {
+        var ret = new Coord();
+        ret.x = Rand(-1,1);
+        ret.y = Rand(-1,1);
+        return ret.normalized();
+    }
+    var maxScale = 3;
+    function circle(pos) {
+        pos = pos || new Coord();
+        this.pos = new Coord();
+        this.dir = randomDir().mul(Rand(3,6));
+        this.graphic = new createjs.Shape();
+        this.graphic.graphics.beginFill("#FFF").drawCircle(0, 0, Rand(2,6));
+        this.graphic.x = pos.x;
+        this.graphic.y = pos.y;
+        this.scale = Rand(0,maxScale);
+    }
+    circle.prototype.update = function() {
+        this.pos = this.pos.add(this.dir);
+        this.pos = this.pos.wrapByBox(screenDims);
+        this.graphic.x = this.pos.x;
+        this.graphic.y = this.pos.y;
+        
+        this.scale += 0.1;
+        this.scale %= maxScale;
+        
+        this.graphic.scaleX = Math.abs(this.scale-maxScale/2) + 1;
+        this.graphic.scaleY = Math.abs(this.scale-maxScale/2) + 1;
+    };
+    var background = new createjs.Shape();
+    background.graphics.beginFill("#000").drawRect(0, 0, stage.canvas.width,stage.canvas.height);
+    GameStates.Loading.container.addChild(background);
+    var circles = [];
+    for(var i=0;i<150;i++) {
+        var toAdd = new circle();
+        toAdd.pos.x = Rand(0,stage.canvas.width);
+        toAdd.pos.y = Rand(0,stage.canvas.height);
+        circles.push(toAdd);
+        GameStates.Loading.container.addChild(toAdd.graphic);
+    }
+    
+    var screenDims = new Coord(stage.canvas.width,stage.canvas.height);
         
     GameStates.Loading.update = function() {
         moveAndLoop(circle,2,40);
+        circles.map(function(item) {
+            item.update();
+        });
     };
     stage.addChild(GameStates.Loading.container);
     CurrentGameState = GameStates.Loading;
@@ -708,7 +749,7 @@ Coord.prototype.projection = function(norm) { return (this.dot(norm).mul(norm)).
 Coord.prototype.rejection  = function(norm) { return this.sub(this.projection(norm)); };
 Coord.prototype.isZero     = function()     { return this.x === 0 && this.y === 0;};
 Coord.prototype.withinBox  = function(exclusiveBounds) { return this.x >= 0 && this.y >= 0 && this.x < exclusiveBounds.x && this.y < exclusiveBounds.y; };
-
+Coord.prototype.wrapByBox  = function(exclusiveBounds) { return new Coord(this.x % exclusiveBounds.x + (this.x < 0 ? exclusiveBounds.x-1 : 0) , this.y % exclusiveBounds.y + (this.y < 0 ? exclusiveBounds.y-1 : 0)); };
 //endregion
 
 //region hasy
