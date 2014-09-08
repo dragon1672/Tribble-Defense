@@ -649,11 +649,13 @@ var Game = (function() {
                     changed = true;
                 }
                 if(changed) {
+                    var oldItem = cell.item;
                     if(cell.item.getLevel() === 0) {
-                        var oldItem = cell.item;
                         cell.item = null;
-                        potato.itemChangedEvent.callAll(cell.pos,oldItem,cell.item);
+                    } else {
+                        cell.item.population = Math.floor(cell.item.population);
                     }
+                    potato.itemChangedEvent.callAll(cell.pos,oldItem,cell.item);
                 }
             }
             item.decreaseLevel();
