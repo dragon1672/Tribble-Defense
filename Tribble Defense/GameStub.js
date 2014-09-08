@@ -534,6 +534,12 @@ var Game = (function() {
                 preloadedQuery = new Query(true);
                 preloadedQuery.alreadyOccupied = thisCell.item !== null;
                 thisCell.item = null;
+                var hazards = this.getHazardAt(pos);
+                var potato = this;
+                hazards.map(function(item) {
+                    potato.hazardRemovedEvent.callAll(item.pos,item);
+                    potato.removeHazard(item);
+                });
             }
         }
 
@@ -613,7 +619,19 @@ var Game = (function() {
         return valid;
     };
     
-    
+    Game.prototype.getHazardAt = function(x,y) {
+        var pos = y === undefined ? x : new Coord(x,y);
+        var ret = [];
+        this.trackedHazards.foreachInSet(function(item) {
+            if(item.pos.isEqual(pos)) {
+                ret.push(item);
+            }
+        });
+        return ret;
+    };
+    Game.prototype.HazardAt = function(x,y) {
+        return this.getHazardAt(x,y).length > 0;
+    };
     
     Game.prototype.update = function() {
         var potato = this;
