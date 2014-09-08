@@ -534,6 +534,7 @@ var Game = (function() {
                 preloadedQuery.alreadyOccupied = thisCell.item !== null;
                 thisCell.item = null;
                 var hazards = this.getHazardAt(pos);
+                var potato = this;
                 hazards.map(function(item) {
                     potato.hazardRemovedEvent.callAll(item.pos,item);
                     potato.removeHazard(item);
