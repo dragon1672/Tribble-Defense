@@ -580,6 +580,71 @@ function initLoadingScreen() {
 //endregion
 
 //region GAMEOBJECT
+//region copy pasted code
+
+function Where(theArray, condition) {
+    var ret = [];
+    theArray.map(function(item) { if(condition(item)) { ret.push(item); }});
+    return ret;
+}
+function Rand(min,max) {
+    return Math.round(Math.random() * (max - min) + min);
+}
+function RandomElement(array) {
+    return array[Rand(0,array.length-1)];
+}
+function SingleSelect(array,selector) {
+    selector = selector || function(a,b) { return a > b ? a : b; };
+    var ret = null;
+	var first = true;
+    array.map(function(item) {
+		ret = first ? item : selector(item,ret);
+		first = false;
+	});
+    return ret;
+}
+function Max(array) { return SingleSelect(array,function(a,b) { return a > b ? a : b; }); }
+function Min(array) { return SingleSelect(array,function(a,b) { return a < b ? a : b; }); }
+function Sum(array) { return SingleSelect(array,function(a,b) { return a + b; }); }
+function Select(array,selector) {
+    selector = selector || function(item) { return item; };
+    var ret = [];
+    array.map(function(item) { ret.push(selector(item));});
+    return ret;
+}
+
+function Coord() {
+    return Coord(0,0);
+}
+function Coord(existingCoord) {
+    return Coord(existingCoord.x,existingCoord.y);
+}
+function Coord(x,y) {
+    this.x = x;
+    this.y = y;
+}
+Coord.prototype.isEqual  = function(that) { return this.x === that.x && this.y === that.y; };
+Coord.prototype.toString = function() { return "{"+this.x+","+this.y+"}"; };
+//math
+Coord.prototype.add = function(that)     { return new Coord(this.x+that.x,this.y+that.y); };
+Coord.prototype.sub = function(that)     { return new Coord(this.x-that.x,this.y-that.y); };
+Coord.prototype.mul = function(constent) { return new Coord(constent * this.x,constent * this.y); };
+Coord.prototype.div = function(constent) { return this.mul(1/constent); };
+Coord.prototype.dot = function(that)     { return this.x * that.x + this.y * that.y; };
+Coord.prototype.lengthSquared = function() { return this.dot(this); };
+Coord.prototype.length     = function()    { return Math.sqrt(this.lengthSquared(this)); };
+Coord.prototype.normalized = function()    { return new Coord(this.x,this.y).div(Math.sqrt(this.lengthSquared(this))); };
+Coord.prototype.perpCW     = function()    { return new Coord(-this.y,this.x); };
+Coord.prototype.perpCCW    = function()    { return new Coord(this.y,-this.x); };
+Coord.prototype.LERP       = function(percent, that) { return this.mul(1-percent).add(that.mul(percent)); };
+Coord.prototype.cross      = function(that) { return this.x * that.y - this.y * that.x; };
+Coord.prototype.projection = function(norm) { return (this.dot(norm).mul(norm)).div(norm.lengthSquared()); };
+Coord.prototype.rejection  = function(norm) { return this.sub(this.projection(norm)); };
+Coord.prototype.isZero     = function()     { return this.x === 0 && this.y === 0;};
+Coord.prototype.withinBox  = function(exclusiveBounds) { return this.x >= 0 && this.y >= 0 && this.x < exclusiveBounds.x && this.y < exclusiveBounds.y; };
+
+//endregion
+
 //region hasy
 
 /*
@@ -1135,7 +1200,7 @@ var Game = (function() {
         this.trackedHazards.foreachInSet(function(item) {
             var oldPos = item.pos;
             item.pos = item.pos.add(item.direction);
-            potato.hazardMovedEvent.callAll(oldPos,item.pos);
+            potato.hazardMovedEvent.callAll(oldPos,item.pos,item);
             var cell = potato.getCell(item.pos);
             if(cell !== null && cell.item !== null && cell.item.type === ItemType.Housing) {
                 //hazard beats item
@@ -1149,7 +1214,7 @@ var Game = (function() {
                     if(cell.item.getLevel() === 0) {
                         var oldItem = cell.item;
                         cell.item = null;
-                        potato.itemChangedEvent.callAll(oldItem.pos,oldItem,cell.item);
+                        potato.itemChangedEvent.callAll(cell.pos,oldItem,cell.item);
                     }
                 }
             }
@@ -1290,9 +1355,9 @@ function Agent(container,coords,pos,dim,type,lifespan){
     };
     
     this.age = function(newAge){
-        this.graphic.scaleX = this.dim.x/(128*(newAge/this.lifespan));
-        this.graphic.scaleY = this.dim.y/(128*(newAge/this.lifespan));
-        this.offset = (128*this.graphic.scaleX)/2;
+        this.graphic.scaleX = (this.dim.x/128)*(newAge/this.lifespan);
+        this.graphic.scaleY = (this.dim.y/128)*(newAge/this.lifespan);
+        this.offset = (this.dim.x/2)*(1-(newAge/this.lifespan));
     };
 }
 
@@ -1622,9 +1687,14 @@ QueueBorder[i].graphics.setStrokeStyle(5,"round").beginStroke("#333").drawRect(6
             var flooredIndex = index.floor();
             var queryInfo = game.QueryMove(flooredIndex,game.itemQ(0));
             if(game.itemQ(0).type==ItemType.BlackHole){
-                if(queryInfo.alreadyOccupied||grid.hasStatic(flooredIndex)){                             grid.clear(container,flooredIndex);
+                if(game.hazardAtSpot(flooredIndex)){
+                    grid.removeHazard(container,flooredIndex);
                     game.ApplyMove(flooredIndex,game.popFromQ(),queryInfo);
                 }
+                else if(queryInfo.alreadyOccupied||grid.hasStatic(flooredIndex)){                         grid.clear(container,flooredIndex);
+                    game.ApplyMove(flooredIndex,game.popFromQ(),queryInfo);
+                }
+                else{ game.popFromQ();}
             }
             else if(!queryInfo.alreadyOccupied&&!grid.hasStatic(flooredIndex)){
                 game.ApplyMove(flooredIndex,game.popFromQ(),queryInfo);
