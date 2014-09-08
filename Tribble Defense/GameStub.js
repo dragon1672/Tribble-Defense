@@ -634,7 +634,7 @@ var Game = (function() {
                     if(cell.item.getLevel() === 0) {
                         var oldItem = cell.item;
                         cell.item = null;
-                        potato.itemChangedEvent.callAll(oldItem.pos,oldItem,cell.item);
+                        potato.itemChangedEvent.callAll(cell.pos,oldItem,cell.item);
                     }
                 }
             }
