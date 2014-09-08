@@ -1132,6 +1132,13 @@ var Game = (function() {
     
     Game.prototype.update = function() {
         var potato = this;
+        this.spawners.map(function(item) {
+            var newHazard = item.updateTurns();
+            if(newHazard !== null) {
+                potato.addHazard(newHazard);
+                potato.hazardSpawnedEvent.callAll(newHazard.pos,newHazard);
+            }
+        });
         this.trackedHazards.foreachInSet(function(item) {
             var oldPos = item.pos;
             item.pos = item.pos.add(item.direction);
@@ -1157,13 +1164,6 @@ var Game = (function() {
             if(item.getLevel() <= 0 || !this.movingInBounds(item.pos,item.direction)) {
                 potato.hazardRemovedEvent.callAll(item.pos,item);
                 potato.removeHazard(item);
-            }
-        });
-        this.spawners.map(function(item) {
-            var newHazard = item.updateTurns();
-            if(newHazard !== null) {
-                potato.addHazard(newHazard);
-                potato.hazardSpawnedEvent.callAll(newHazard.pos,newHazard);
             }
         });
     };
@@ -1263,10 +1263,42 @@ function Square(pos,dim){
     };
 }
 
+function Agent(container,pos,dim,type,lifespan){
+    this.pos = pos;
+    this.dim = dim;
+    this.type = type;
+    this.lifespan = lifespan;
+    this.life = lifespan;
+    this.graphic = allGraphic[type+hazardBuf].clone();
+    this.graphic.x = this.pos.x;
+    this.graphic.y = this.pos.y;
+    this.graphic.scaleX = this.dim.x/128;
+    this.graphic.scaleY = this.dim.y/128;
+    container.addChild(this.graphic);
+    
+    this.move = function(newPos){
+        this.graphic.x = newPos.x;
+        this.graphic.y = newPos.y;
+        this.age();
+    };
+    
+    this.destruct = function(container){
+        container.removeChild(this.graphic);
+        this.graphic=null;
+    };
+    
+    this.age = function(){
+        this.life--;
+        this.graphic.scaleX = this.dim.x/128*this.life/this.lifespan;
+        this.graphic.scaleY = this.dim.y/128*this.life/this.lifespan;
+    };
+}
+
 function Grid(container, cells, pos, dim){
     this.dim = dim;
     this.pos = pos;
     this.cells = cells;
+    this.agents = new HashSet();
     this.squares = [];
     for(var i=0; i<cells.x; i++){
         this.squares[i] = [];
@@ -1306,9 +1338,26 @@ function Grid(container, cells, pos, dim){
         this.squares[i.x][i.y].changeItem(container,0);
         if(this.squares[i.x][i.y].misc!==0){this.squares[i.x][i.y].misc=0;}
     };
-    this.placeHazard = function(container,i,haz){
-        this.squares[i.x][i.y].changeItem(container,haz+hazardBuf);
-        this.squares[i.x][i.y].misc=haz+1;
+    this.spawnHazard = function(container,i,haz,lifespan){
+        var spos = new Coord(i.x*(dim.x/cells.x)+pos.x,i.y*(dim.y/cells.y)+pos.y);
+        var sdim = new Coord(dim.x/cells.x,dim.y/cells.y);
+        this.agents.add( new Agent(container,spos,sdim,haz,lifespan));
+    };
+    this.moveHazard = function(oldPos,newPos){
+        var spos = new Coord(newPos.x*(dim.x/cells.x)+pos.x,newPos.y*(dim.y/cells.y)+pos.y);
+        this.hazardAt(oldPos).move(spos);
+    };
+    this.hazardAt = function(i){
+        var spos = new Coord(i.x*(dim.x/cells.x)+pos.x,i.y*(dim.y/cells.y)+pos.y);
+        var ret = null;
+        this.agents.foreachInSet(function(item) {
+            if(item.pos.isEqual(spos)){ ret = item;}
+        });
+        return ret;
+    };
+    this.removeHazard = function(container,i){
+        this.hazardAt(i).destruct(container);
+        this.agents.remove(this.hazardAt(i));
     };
     
     this.randomStatic = function(container,amount){
@@ -1327,6 +1376,9 @@ function Grid(container, cells, pos, dim){
                 this.squares[i][j] = null;
             }
         }
+        this.agents.foreachInSet(function(item) {
+            item.destruct(container);
+        });
     };
 }
 
@@ -1482,15 +1534,13 @@ QueueBorder[i].graphics.setStrokeStyle(5,"round").beginStroke("#333").drawRect(6
             else grid.clear(container,pos);
         });
         game.hazardSpawnedEvent.addCallBack(function(pos,hazard){
-            grid.placeHazard(container,pos,grid.getHazardType(pos));
+            grid.spawnHazard(container,pos,grid.getHazardType(pos),hazard.level);
         });
         game.hazardMovedEvent.addCallBack(function(oldPos,newPos){
-            var hazType = grid.getHazardType(oldPos);
-            grid.clear(container,oldPos);
-            grid.placeHazard(container,newPos,hazType);
+            grid.moveHazard(oldPos,newPos);
         });
         game.hazardRemovedEvent.addCallBack(function(pos,hazard){
-            grid.clear(container,pos); 
+            grid.removeHazard(container,pos); 
         });
         
 //endregion
