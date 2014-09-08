@@ -523,7 +523,6 @@ var Game = (function() {
                 });
                 itemToPlace.population += preloadedQuery.levelBoost * this.ComboBoost;
                 itemToPlace.setToLevel(itemToPlace.getLevel()+preloadedQuery.levelBoost);
-                this.populationChangedEvent.callAll();
             }
             var old = thisCell.item;
             thisCell.item = itemToPlace;
@@ -535,7 +534,6 @@ var Game = (function() {
                 preloadedQuery.alreadyOccupied = thisCell.item !== null;
                 thisCell.item = null;
                 var hazards = this.getHazardAt(pos);
-                var potato = this;
                 hazards.map(function(item) {
                     potato.hazardRemovedEvent.callAll(item.pos,item);
                     potato.removeHazard(item);
@@ -545,6 +543,7 @@ var Game = (function() {
 
         this.turns--;
         this.update();
+        this.populationChangedEvent.callAll();
 
         return preloadedQuery;
     };
