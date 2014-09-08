@@ -354,7 +354,7 @@ function loadFiles() {
 function initSprites() {
     var buttonSheet = new createjs.SpriteSheet({
         images: [queue.getResult("button")],
-        frames: {width: 192, height: 81, regX: 96, regY: 40},
+        frames: {width: 192, height: 82, regX: 96, regY: 40},
         animations: {
         playUp:   [0, 0, "playUp"],
         playOver: [1, 1, "playOver"],
@@ -1114,6 +1114,12 @@ var Game = (function() {
                 preloadedQuery = new Query(true);
                 preloadedQuery.alreadyOccupied = thisCell.item !== null;
                 thisCell.item = null;
+                var hazards = this.getHazardAt(pos);
+                var potato = this;
+                hazards.map(function(item) {
+                    potato.hazardRemovedEvent.callAll(item.pos,item);
+                    potato.removeHazard(item);
+                });
             }
         }
 
@@ -1193,7 +1199,19 @@ var Game = (function() {
         return valid;
     };
     
-    
+    Game.prototype.getHazardAt = function(x,y) {
+        var pos = y === undefined ? x : new Coord(x,y);
+        var ret = [];
+        this.trackedHazards.foreachInSet(function(item) {
+            if(item.pos.isEqual(pos)) {
+                ret.push(item);
+            }
+        });
+        return ret;
+    };
+    Game.prototype.HazardAt = function(x,y) {
+        return this.getHazardAt(x,y).length > 0;
+    };
     
     Game.prototype.update = function() {
         var potato = this;
@@ -1404,6 +1422,7 @@ function Grid(container, cells, pos, dim){
     this.clear = function(container,i){
         this.squares[i.x][i.y].changeItem(container,0);
         if(this.squares[i.x][i.y].misc!==0){this.squares[i.x][i.y].misc=0;}
+        this.refresh(container);
     };
     this.spawnHazard = function(container,i,haz,lifespan){
         var spos = new Coord(i.x*(dim.x/cells.x)+pos.x,i.y*(dim.y/cells.y)+pos.y);
@@ -1446,22 +1465,12 @@ function Grid(container, cells, pos, dim){
             item.destruct(container);
         });
     };
-}
-
-function updateQueue(container){
-    var mod=1;
-    for(var i=3; i>=0; i--){
-        container.removeChild(elementQueue[i]);
-        if(i===0){mod=2;}
-        var lev = game.itemQ(i).getLevel();
-        if(lev>5){lev=5;}
-        elementQueue[i] = allGraphic[lev+elementBuf].clone();
-        elementQueue[i].x = 675-25*mod;
-        elementQueue[i].y = 550-60*(3-i)-50*mod;
-        elementQueue[i].scaleX = 50*mod/128;
-        elementQueue[i].scaleY = 50*mod/128;
-        container.addChild(elementQueue[i]);
-    }
+    this.refresh = function(container){
+        this.agents.foreachInSet(function(item) {
+            container.removeChild(item.graphic);
+            container.addChild(item.graphic);
+        });
+    };
 }
 
 function updateStars(ratio){  
@@ -1482,16 +1491,15 @@ function updateStars(ratio){
 //endregion
 
 //region GAME
-var game;
-var grid;
+var currentLevel = 1;
+var levels = [];
 var QueueContainer = [];
 var QueueBorder = [];
 var elementQueue = [];
-var turns;
 var turnsLabel;
+var turnsText;
 var pop;
 var goal;
-var goalAmount;
 var rightBar;
 var rightBarBorder;
 var topBar;
@@ -1501,41 +1509,146 @@ var bottomBarBorder;
 var leftBar;
 var stars = [];
 
+function Level(title,world,turns,goalamount,gameSize){
+    this.world = world;
+    this.title = title;
+    this.turns = turns;
+    this.goalAmount = goalamount;
+    this.gameSize = gameSize;
+    
+    this.enable = function(container){
+        if(this.world==1){
+            allGraphic[0] = loadImage("purPath");
+            allGraphic[1] = loadImage("purTree");
+            allGraphic[2] = loadImage("purRock");
+            allGraphic[3] = loadImage("bolt");
+            allGraphic[4] = loadImage("purPop1");
+            allGraphic[5] = loadImage("purPop2");
+            allGraphic[6] = loadImage("purPop3");
+            allGraphic[7] = loadImage("purPop4");
+            allGraphic[8] = loadImage("purPop5");
+            allGraphic[9] = loadImage("mantisSpawn");
+            allGraphic[10] = loadImage("fireSpawn");
+            allGraphic[11] = loadImage("mantis");
+            allGraphic[12] = loadImage("fire");
+            this.background = loadImage("purBackground");
+            container.addChild(this.background);
+        }
+        else if(this.world==2){
+            allGraphic[0] = loadImage("bluPath");
+            allGraphic[1] = loadImage("bluTree");
+            allGraphic[2] = loadImage("bluRock");
+            allGraphic[3] = loadImage("bolt");
+            allGraphic[4] = loadImage("bluPop1");
+            allGraphic[5] = loadImage("bluPop2");
+            allGraphic[6] = loadImage("bluPop3");
+            allGraphic[7] = loadImage("bluPop4");
+            allGraphic[8] = loadImage("bluPop5");
+            allGraphic[9] = loadImage("creeperSpawn");
+            allGraphic[10] = loadImage("tsunamiSpawn");
+            allGraphic[11] = loadImage("creeper");
+            allGraphic[12] = loadImage("tsunami");
+            this.background = loadImage("bluBackground");
+            container.addChild(this.background);
+        }
+        this.game = new Game(this.gameSize);
+        this.game.turns = this.turns;
+        var pineapple = this;
+        this.game.itemQChangedEvent.addCallBack(function(e){
+            e = e;
+            pineapple.updateQueue(container);
+        });
+        this.game.populationChangedEvent.addCallBack(function(e){
+            e=e;
+            var popul = pineapple.game.getPopulation();
+            pop.text = "Pop " + popul;
+            updateStars(popul/pineapple.goalAmount);
+            score = popul;
+        });
+        this.game.itemChangedEvent.addCallBack(function(pos,oldItem,newItem){
+            if(newItem!==null){pineapple.grid.placeElement(container,pos,newItem.getLevel());}
+            else {pineapple.grid.clear(container,pos);}
+        });
+        this.game.hazardSpawnedEvent.addCallBack(function(pos,hazard){
+            pineapple.grid.spawnHazard(container,pos,pineapple.grid.getHazardType(pos),hazard.level);
+        });
+        this.game.hazardMovedEvent.addCallBack(function(oldPos,newPos,hazard){
+            pineapple.grid.moveHazard(oldPos,newPos,hazard.level);
+        });
+        this.game.hazardRemovedEvent.addCallBack(function(pos,hazard){
+            pineapple.grid.removeHazard(container,pos); 
+        });
+    };
+    
+    this.setSpawners = function(){};
+    
+    this.setupGrid = function(container){
+        turnsText.text = this.game.getTurnCount();
+        pop.text = "Pop: " + this.game.getPopulation();
+        goal.text = " / "+ this.goalAmount;
+        
+        this.grid = new Grid(container, this.game.getDims(),new Coord(30,50),new Coord(500,500));
+        
+        this.grid.randomStatic(container,3);
+        
+        for(var i=0; i<this.game.spawners.length; i++){
+            if(this.game.spawners[i].pos.withinBox(this.game.getDims())){
+                this.grid.placeSpawner(container,this.game.spawners[i].pos,i);   
+            }
+        }
+    };
+    
+    this.updateQueue = function(container){
+        var mod=1;
+        for(var i=3; i>=0; i--){
+            container.removeChild(elementQueue[i]);
+            if(i===0){mod=2;}
+            var lev = this.game.itemQ(i).getLevel();
+            if(lev>5){lev=5;}
+            elementQueue[i] = allGraphic[lev+elementBuf].clone();
+            elementQueue[i].x = 675-25*mod;
+            elementQueue[i].y = 550-60*(3-i)-50*mod;
+            elementQueue[i].scaleX = 50*mod/128;
+            elementQueue[i].scaleY = 50*mod/128;
+            container.addChild(elementQueue[i]);
+        }
+    };
+    
+    this.place = function(container){
+        if(mouse.pos.sub(this.grid.pos).withinBox(this.grid.dim)){
+            var index = mouse.pos.sub(this.grid.pos).div(this.grid.dim.x/this.grid.cells.x);
+            var flooredIndex = index.floor();
+            var queryInfo = this.game.QueryMove(flooredIndex,this.game.itemQ(0));
+            if(this.game.itemQ(0).type==ItemType.BlackHole){
+                if(this.game.HazardAt(flooredIndex)){
+                    this.game.ApplyMove(flooredIndex,this.game.popFromQ(),queryInfo);
+                }
+                else if(queryInfo.alreadyOccupied||this.grid.hasStatic(flooredIndex)){                         
+                    this.grid.clear(container,flooredIndex);
+                    this.game.ApplyMove(flooredIndex,this.game.popFromQ(),queryInfo);
+                }
+                else{ this.game.popFromQ();}
+            }
+            else if(!queryInfo.alreadyOccupied&&!this.grid.hasStatic(flooredIndex)){
+                this.game.ApplyMove(flooredIndex,this.game.popFromQ(),queryInfo);
+            }
+        }   
+    };
+    
+    this.update = function(){
+        turns.text=this.game.getTurnCount();
+        if(this.game.getTurnCount()===0){
+            CurrentGameState=GameStates.GameOver;
+        }  
+    };
+    this.disable = function(container){
+        container.removeChild(this.background);
+        this.grid.destruct(container);  
+    };
+}
+
 function initGameScene(container) {
 //region UI init
-    var world = 2;
-    if(world==1){
-        allGraphic[0] = loadImage("purPath");
-        allGraphic[1] = loadImage("purTree");
-        allGraphic[2] = loadImage("purRock");
-        allGraphic[3] = loadImage("bolt");
-        allGraphic[4] = loadImage("purPop1");
-        allGraphic[5] = loadImage("purPop2");
-        allGraphic[6] = loadImage("purPop3");
-        allGraphic[7] = loadImage("purPop4");
-        allGraphic[8] = loadImage("purPop5");
-        allGraphic[9] = loadImage("mantisSpawn");
-        allGraphic[10] = loadImage("fireSpawn");
-        allGraphic[11] = loadImage("mantis");
-        allGraphic[12] = loadImage("fire");
-        container.addChild(loadImage("purBackground"));
-    }
-    else if(world==2){
-        allGraphic[0] = loadImage("bluPath");
-        allGraphic[1] = loadImage("bluTree");
-        allGraphic[2] = loadImage("bluRock");
-        allGraphic[3] = loadImage("bolt");
-        allGraphic[4] = loadImage("bluPop1");
-        allGraphic[5] = loadImage("bluPop2");
-        allGraphic[6] = loadImage("bluPop3");
-        allGraphic[7] = loadImage("bluPop4");
-        allGraphic[8] = loadImage("bluPop5");
-        allGraphic[9] = loadImage("creeperSpawn");
-        allGraphic[10] = loadImage("tsunamiSpawn");
-        allGraphic[11] = loadImage("creeper");
-        allGraphic[12] = loadImage("tsunami");
-        container.addChild(loadImage("bluBackground"));
-    }
     
     leftBar = new createjs.Shape();
     leftBar.graphics.beginFill("#333").drawRect(0,0,5,600);
@@ -1544,27 +1657,29 @@ function initGameScene(container) {
     rightBar.graphics.beginFill("#AAA").drawRect(565,5,230,590);
     rightBar.alpha = 0.5;
     rightBarBorder = new createjs.Shape();
-rightBarBorder.graphics.setStrokeStyle(5,"round").beginStroke("#333").drawRect(565,5,230,590);
+    rightBarBorder.graphics.setStrokeStyle(5,"round").beginStroke("#333").drawRect(565,5,230,590);
+    
     topBar = new createjs.Shape();
     topBar.graphics.beginFill("#AAA").drawRect(5,5,560,30);
     topBar.alpha = 0.5;
     topBarBorder = new createjs.Shape();
-topBarBorder.graphics.setStrokeStyle(5,"round").beginStroke("#333").drawRect(2,2,560,34);
+    topBarBorder.graphics.setStrokeStyle(5,"round").beginStroke("#333").drawRect(2,2,560,34);
+    
     bottomBar = new createjs.Shape();
     bottomBar.graphics.beginFill("#AAA").drawRect(5,565,560,30);
     bottomBar.alpha = 0.5;
     bottomBarBorder = new createjs.Shape();
-bottomBarBorder.graphics.setStrokeStyle(5,"round").beginStroke("#333").drawRect(2,563,560,34);
+    bottomBarBorder.graphics.setStrokeStyle(5,"round").beginStroke("#333").drawRect(2,563,560,34);
     
     QueueBorder[0] = new createjs.Shape();
-QueueBorder[0].graphics.setStrokeStyle(5,"round").beginStroke("#333").drawRect(620,265,110,110);
+    QueueBorder[0].graphics.setStrokeStyle(5,"round").beginStroke("#333").drawRect(620,265,110,110);
     QueueContainer[0] = new createjs.Shape();
     QueueContainer[0].graphics.beginFill("#AAA").drawRect(625,270,100,100);
     QueueContainer[0].alpha = 0.5;
     
     for(var i=1; i<4; i++){
         QueueBorder[i] = new createjs.Shape();
-QueueBorder[i].graphics.setStrokeStyle(5,"round").beginStroke("#333").drawRect(645,320+60*i-5,60,60);
+        QueueBorder[i].graphics.setStrokeStyle(5,"round").beginStroke("#333").drawRect(645,320+60*i-5,60,60);
         QueueContainer[i] = new createjs.Shape();
         QueueContainer[i].graphics.beginFill("#AAA").drawRect(650,320+60*i,50,50);
         QueueContainer[i].alpha= 0.5;
@@ -1577,57 +1692,54 @@ QueueBorder[i].graphics.setStrokeStyle(5,"round").beginStroke("#333").drawRect(6
         stars[i].scaleX = 0.6+0.2*(i%2);
         stars[i].scaleY = 0.6+0.2*(i%2);
     }
+    
+    turnsLabel = new createjs.Text("Turns: ", "italic 20px Orbitron", "#FFF");
+    turnsLabel.x = 580;
+    turnsLabel.y = 60; 
+    
+    turnsText = new createjs.Text("", "italic 64px Orbitron", "#FFF");
+    turnsText.x = 660;
+    turnsText.y = 15; 
+    
+    pop = new createjs.Text("", "24px Quantico", "#FFF");
+    pop.x = 600;
+    pop.y = 100;
+    
+    goal = new createjs.Text("", "24px Quantico", "#FFF");
+    goal.x = 680;
+    goal.y = 100; 
+    
+    
+    levels[0] = new Level("Welcome to home!", 2 , 45, 80, new Coord(6,6));
+    levels[0].setSpawners = function(){
+        levels[0].game.addSpawner(new Spawner(5,8,3,5));
+        levels[0].game.spawners[0].pos = new Coord(4,4);
+        levels[0].game.spawners[0].directions[0] = new Coord(0,-1);
+        levels[0].game.spawners[0].directions[1] = new Coord(-1,0);
+        levels[0].game.addSpawner(new Spawner(1,2,3,4));
+        levels[0].game.spawners[1].pos = new Coord(0,0);
+        levels[0].game.spawners[1].directions[0] = new Coord(0,1);
+        levels[0].game.spawners[1].directions[1] = new Coord(1,1);
+    };
+    levels[1] = new Level("HI", 1 , 40, 60, new Coord(6,6));
+    levels[1].setSpawners = function(){
+        levels[1].game.addSpawner(new Spawner(5,8,3,5));
+        levels[1].game.spawners[0].pos = new Coord(1,4);
+        levels[1].game.spawners[0].directions[0] = new Coord(0,-1);
+        levels[1].game.spawners[0].directions[1] = new Coord(1,0);
+        levels[1].game.addSpawner(new Spawner(1,2,3,4));
+        levels[1].game.spawners[1].pos = new Coord(3,3);
+        levels[1].game.spawners[1].directions[0] = new Coord(0,1);
+        levels[1].game.spawners[1].directions[1] = new Coord(1,1);
+    };
+    
 //endregion
     
     GameStates.Game.enable = function() {
-        
-        game = new Game(new Coord(6,6));
-        game.turns=45;
-//region Game Events
-        game.itemQChangedEvent.addCallBack(function(e){
-            e = e;
-            updateQueue(container);
-        });
-        game.populationChangedEvent.addCallBack(function(e){
-            e=e;
-            var popul = game.getPopulation();
-            pop.text = "Pop " + popul;
-            updateStars(popul/goalAmount);
-            score = popul;
-        });
-        game.itemChangedEvent.addCallBack(function(pos,oldItem,newItem){
-            if(newItem!==null)grid.placeElement(container,pos,newItem.getLevel());
-            else grid.clear(container,pos);
-        });
-        game.hazardSpawnedEvent.addCallBack(function(pos,hazard){
-            grid.spawnHazard(container,pos,grid.getHazardType(pos),hazard.level);
-        });
-        game.hazardMovedEvent.addCallBack(function(oldPos,newPos,hazard){
-            grid.moveHazard(oldPos,newPos,hazard.level);
-        });
-        game.hazardRemovedEvent.addCallBack(function(pos,hazard){
-            grid.removeHazard(container,pos); 
-        });
-        
-//endregion
-//region Game Setup
-        goalAmount = 80;
-        game.addSpawner(new Spawner(5,8,3,5));
-        game.spawners[0].pos = new Coord(4,4);
-        game.spawners[0].directions[0] = new Coord(0,-1);
-        game.spawners[0].directions[1] = new Coord(-1,0);
-        game.addSpawner(new Spawner(1,2,7,8));
-        game.spawners[1].pos = new Coord(0,0);
-        game.spawners[1].directions[0] = new Coord(0,1);
-        game.spawners[1].directions[1] = new Coord(1,1);
-//endregion
-//region UI setup
-        turnsLabel = new createjs.Text("Turns: ", "italic 20px Orbitron", "#FFF");
-        turnsLabel.x = 580;
-        turnsLabel.y = 60; 
-        container.addChild(turnsLabel);
-        
         backgroundMusic.setSoundFromString("GamePlay",true);
+        levels[currentLevel].enable(container);
+        levels[currentLevel].setSpawners();
+        levels[currentLevel].setupGrid(container);
         
         container.addChild(leftBar);
         container.addChild(topBarBorder);
@@ -1636,6 +1748,7 @@ QueueBorder[i].graphics.setStrokeStyle(5,"round").beginStroke("#333").drawRect(6
         container.addChild(bottomBar);
         container.addChild(rightBarBorder);
         container.addChild(rightBar);
+        container.addChild(turnsLabel);
         
         for(var i=0; i<4; i++){
             container.addChild(QueueBorder[i]);   
@@ -1646,33 +1759,11 @@ QueueBorder[i].graphics.setStrokeStyle(5,"round").beginStroke("#333").drawRect(6
         container.addChild(stars[1]);
         container.addChild(stars[2]);
         
-        turns = new createjs.Text(game.getTurnCount(), "italic 64px Orbitron", "#FFF");
-        turns.x = 660;
-        turns.y = 15; 
-        container.addChild(turns);
-        
-        pop = new createjs.Text("Pop " +game.getPopulation(), "24px Quantico", "#FFF");
-        pop.x = 600;
-        pop.y = 100; 
+        container.addChild(turnsText);
         container.addChild(pop);
-        
-        goal = new createjs.Text(" / "+ goalAmount, "24px Quantico", "#FFF");
-        goal.x = 680;
-        goal.y = 100; 
         container.addChild(goal);
         
-        updateQueue(container);
-        
-        grid = new Grid(container, game.getDims(),new Coord(30,50),new Coord(500,500));
-        
-        grid.randomStatic(container,3);
-        
-        for(i=0; i<game.spawners.length; i++){
-            if(game.spawners[i].pos.withinBox(game.getDims())){
-                grid.placeSpawner(container,game.spawners[i].pos,i);   
-            }
-        }
-//endregion
+        levels[currentLevel].updateQueue(container);
     };
     
     GameStates.Game.mouseDownEvent = function(e){
@@ -1682,38 +1773,38 @@ QueueBorder[i].graphics.setStrokeStyle(5,"round").beginStroke("#333").drawRect(6
     
     GameStates.Game.mouseUpEvent = function(e){
         e=e;
-        if(mouse.pos.sub(grid.pos).withinBox(grid.dim)){
-            var index = mouse.pos.sub(grid.pos).div(grid.dim.x/grid.cells.x);
-            var flooredIndex = index.floor();
-            var queryInfo = game.QueryMove(flooredIndex,game.itemQ(0));
-            if(game.itemQ(0).type==ItemType.BlackHole){
-                if(game.hazardAtSpot(flooredIndex)){
-                    grid.removeHazard(container,flooredIndex);
-                    game.ApplyMove(flooredIndex,game.popFromQ(),queryInfo);
-                }
-                else if(queryInfo.alreadyOccupied||grid.hasStatic(flooredIndex)){                         grid.clear(container,flooredIndex);
-                    game.ApplyMove(flooredIndex,game.popFromQ(),queryInfo);
-                }
-                else{ game.popFromQ();}
-            }
-            else if(!queryInfo.alreadyOccupied&&!grid.hasStatic(flooredIndex)){
-                game.ApplyMove(flooredIndex,game.popFromQ(),queryInfo);
-            }
-        }
+        levels[currentLevel].place(container);
     };
     
     GameStates.Game.update = function() {
-        turns.text=game.getTurnCount();
-        if(game.getTurnCount()===0){
-            CurrentGameState=GameStates.GameOver;
-        }
+        levels[currentLevel].update();
+        
     };
+    
     GameStates.Game.disable = function() {
+        levels[currentLevel].disable(container);
         score = pop.text;
-        container.removeChild(turns);
-        container.removeChild(pop); 
-        container.removeChild(goal); 
-        grid.destruct(container);
+        container.removeChild(leftBar);
+        container.removeChild(topBarBorder);
+        container.removeChild(topBar);
+        container.removeChild(bottomBarBorder);
+        container.removeChild(bottomBar);
+        container.removeChild(rightBarBorder);
+        container.removeChild(rightBar);
+        container.removeChild(turnsLabel);
+        
+        for(var i=0; i<4; i++){
+            container.removeChild(QueueBorder[i]);   
+            container.removeChild(QueueContainer[i]);
+            container.removeChild(elementQueue[i]);
+        }
+        
+        container.removeChild(stars[0]);
+        container.removeChild(stars[1]);
+        container.removeChild(stars[2]);
+        container.removeChild(turnsText);
+        container.removeChild(pop);
+        container.removeChild(goal);
     };
 }
 //endregion
