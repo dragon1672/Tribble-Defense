@@ -617,13 +617,6 @@ var Game = (function() {
     
     Game.prototype.update = function() {
         var potato = this;
-        this.spawners.map(function(item) {
-            var newHazard = item.updateTurns();
-            if(newHazard !== null) {
-                potato.addHazard(newHazard);
-                potato.hazardSpawnedEvent.callAll(newHazard.pos,newHazard);
-            }
-        });
         this.trackedHazards.foreachInSet(function(item) {
             var oldPos = item.pos;
             item.pos = item.pos.add(item.direction);
@@ -646,9 +639,16 @@ var Game = (function() {
                 }
             }
             item.decreaseLevel();
-            if(item.getLevel() <= 0 || !this.movingInBounds(item.pos,item.direction)) {
+            if(item.getLevel() <= 0 || !potato.movingInBounds(item.pos,item.direction)) {
                 potato.hazardRemovedEvent.callAll(item.pos,item);
                 potato.removeHazard(item);
+            }
+        });
+        this.spawners.map(function(item) {
+            var newHazard = item.updateTurns();
+            if(newHazard !== null) {
+                potato.addHazard(newHazard);
+                potato.hazardSpawnedEvent.callAll(newHazard.pos,newHazard);
             }
         });
     };
