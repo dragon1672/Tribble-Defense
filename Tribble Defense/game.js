@@ -181,6 +181,7 @@ var manifest = [
     {src:"audio/Loading.mp3", id:"Loading"},
     {src:"images/Static/Title.png", id:"title"},
     {src:"images/Static/LevelSelection.png", id:"levelSelect"},
+    {src:"images/Static/PauseMenu.png", id:"pauseMenu"},
     {src:"images/Static/Instructions.png", id:"instructions"},
     {src:"images/Static/GameOverPurplePlanet.png", id:"purGameover"},
     {src:"images/Static/GameOverBluePlanet.png", id:"bluGameover"},
@@ -198,10 +199,13 @@ var manifest = [
     {src:"images/Static/purpleTreeBlock.png", id:"purTree"},
     {src:"images/Static/blueTreeBlock.png", id:"bluTree"},
     {src:"images/buttons.png", id:"button"},
+    {src:"images/miniButtons.png", id:"miniButton"},
     {src:"images/SpeakerOn.png", id:"SpeakerOn"},
     {src:"audio/StartScreen.mp3", id:"StartScreen"},
     {src:"images/SpeakerOff.png", id:"SpeakerOff"},
     {src:"audio/TinyTick.mp3", id:"tinyTick"},
+    {src:"audio/Tick.mp3", id:"tick"},
+    {src:"audio/Kaching.mp3", id:"kaching"},
     {src:"images/stars.png", id:"Stars"},
     {src:"images/Hazard/LightningBolt.png", id:"bolt"},
     {src:"images/Hazard/tsunamiBlock.png", id:"tsunami"},
@@ -278,13 +282,13 @@ var backgroundMusic = {
 
 var spriteSheets = {
     buttons: null,
-    barrier: null,
+    miniButtons: null,
     stars: null,
     makeButton: function() {
         return (new createjs.Sprite(this.buttons));
     },
-    makeBarrier: function() {
-        return (new createjs.Sprite(this.barrier));
+    makeMiniButton: function() {
+        return (new createjs.Sprite(this.miniButtons));
     },
     makeStar: function() {
         return (new createjs.Sprite(this.stars));
@@ -378,6 +382,26 @@ function initSprites() {
         } 
     });
     spriteSheets.buttons = buttonSheet;
+    
+    var miniButtonSheet = new createjs.SpriteSheet({
+        images: [queue.getResult("miniButton")],
+        frames: {width: 127, height: 38, regX: 64, regY: 19},
+        animations: {
+        miniMenuUp:   [0, 0, "miniMenuUp"],
+        miniMenuOver: [1, 1, "miniMenuOver"],
+        miniMenuDown: [2, 2, "miniMenuDown"],
+        miniQuitUp:   [3, 3, "miniQuitUp"],
+        miniQuitOver: [4, 4, "miniQuitOver"],
+        miniQuitDown: [5, 5, "miniQuitDown"],
+        miniHelpUp:   [6, 6, "miniHelpUp"],
+        miniHelpOver: [7, 7, "miniHelpOver"],
+        miniHelpDown: [8, 8, "miniHelpDown"],
+        miniBackUp:   [9, 9,   "miniBackUp"],
+        miniBackOver: [10, 10, "miniBackOver"],
+        miniBackDown: [11, 11, "miniBackDown"],
+        } 
+    });
+    spriteSheets.miniButtons = miniButtonSheet;
     //This takes the images loaded from the sprite sheet and breaks it into the individual frames. I cut and pasted the 'frames' parameter from the .js file created by Flash when I exported in easelJS format. I didn't cut and paste anything except 'frames' because I am using preloadJS to load all the images completely before running the game. That's what the queue.getResult is all about.
     
     var starSheet = new createjs.SpriteSheet({
@@ -517,10 +541,27 @@ function init() {
             backgroundMusic.setSoundFromString("StartScreen",true);
         };
         var BTN = [];
-        BTN.push(CreateButtonFromSprite(spriteSheets.makeButton(),"play",    function() { CurrentGameState = GameStates.Game;         }));
-        BTN.push(CreateButtonFromSprite(spriteSheets.makeButton(),"instruct",function() { CurrentGameState = GameStates.Instructions; }));
-        BTN.push(CreateButtonFromSprite(spriteSheets.makeButton(),"level",    function() { CurrentGameState.container.addChild(loadImage("levelSelect"));         }));
-        BTN.push(CreateButtonFromSprite(spriteSheets.makeButton(),"credits", function() { CurrentGameState = GameStates.Credits;      }));
+        BTN.push(CreateButtonFromSprite(spriteSheets.makeButton(),"play",    function() { CurrentGameState = GameStates.Game;createjs.Sound.play("tick");}));
+        BTN.push(CreateButtonFromSprite(spriteSheets.makeButton(),"instruct",function() { CurrentGameState = GameStates.Instructions; createjs.Sound.play("tick");}));
+        BTN.push(CreateButtonFromSprite(spriteSheets.makeButton(),"level",    function() { 
+            var subMenu = loadImage("levelSelect");
+            CurrentGameState.container.addChild(subMenu);
+            var mBTN = [];
+            mBTN.push(CreateButtonFromSprite(spriteSheets.makeMiniButton(),"miniBack",    function() {
+                createjs.Sound.play("tick");
+                mBTN.map(function(item) {
+                    GameStates.StartScreen.container.removeChild(item);
+                });
+                GameStates.StartScreen.container.removeChild(subMenu);
+            }));
+            mBTN[0].x=400;
+            mBTN[0].y=400;
+            mBTN.map(function(item) {
+                GameStates.StartScreen.container.addChild(item);
+            });
+            createjs.Sound.play("tick");
+        }));
+        BTN.push(CreateButtonFromSprite(spriteSheets.makeButton(),"credits", function() { CurrentGameState = GameStates.Credits; createjs.Sound.play("tick");}));
         
         stackButtons(BTN,10,new Coord(600,100));
         
@@ -532,7 +573,7 @@ function init() {
     //init instructions
     {
         var BTN_mainMenu = spriteSheets.makeButton();
-        CreateButtonFromSprite(BTN_mainMenu,"menu",function() { CurrentGameState = GameStates.StartScreen; });
+        CreateButtonFromSprite(BTN_mainMenu,"menu",function() { CurrentGameState = GameStates.StartScreen; createjs.Sound.play("tick");});
         BTN_mainMenu.x = stage.canvas.width - BTN_mainMenu.getBounds().width - PADDING;
         BTN_mainMenu.y = stage.canvas.height - BTN_mainMenu.getBounds().height - PADDING;
         GameStates.Instructions.container.addChild(BTN_mainMenu);
@@ -540,7 +581,7 @@ function init() {
     }
     //init credits
     {
-        var BTN_mainMenu_creditsScreen = CreateButtonFromSprite(spriteSheets.makeButton(),"menu",function() { CurrentGameState = GameStates.StartScreen; });
+        var BTN_mainMenu_creditsScreen = CreateButtonFromSprite(spriteSheets.makeButton(),"menu",function() { CurrentGameState = GameStates.StartScreen; createjs.Sound.play("tick");});
         BTN_mainMenu_creditsScreen.x = stage.canvas.width - BTN_mainMenu_creditsScreen.getBounds().width - PADDING;
         BTN_mainMenu_creditsScreen.y = stage.canvas.height - BTN_mainMenu_creditsScreen.getBounds().height - PADDING;
         GameStates.Credits.container.addChild(BTN_mainMenu_creditsScreen);
@@ -558,15 +599,16 @@ function init() {
         
         GameStates.GameOver.enable = function() {
             
-            btns.push(CreateButtonFromSprite(spriteSheets.makeButton(),"menu",function() { CurrentGameState = GameStates.StartScreen; }));
+            btns.push(CreateButtonFromSprite(spriteSheets.makeButton(),"menu",function() { CurrentGameState = GameStates.StartScreen; createjs.Sound.play("tick");}));
             btns[0].x = 200;
             btns[0].y = 400;
             if(currentLevel<levels.length-1){
-                btns.push(CreateButtonFromSprite(spriteSheets.makeButton(),"play",function() { if(victory)currentLevel++;CurrentGameState = GameStates.Game; }));
+                btns.push(CreateButtonFromSprite(spriteSheets.makeButton(),"play",function() { if(victory)currentLevel++;CurrentGameState = GameStates.Game; createjs.Sound.play("tick");}));
                 btns[1].x = 600;
                 btns[1].y = 400;
             }
-            backgroundMusic.setSoundFromString("Failure",true);
+            if(victory)backgroundMusic.setSoundFromString("StartScreen",true);
+            else backgroundMusic.setSoundFromString("Failure",true);
             GameStates.GameOver.container.addChild(finalScore);
             btns.map(function(item) {
                 GameStates.GameOver.container.addChild(item);
@@ -1373,8 +1415,8 @@ function Agent(container,coords,pos,dim,type,lifespan){
     this.move = function(newCoords,newPos,newAge){
         this.coords =newCoords;
         this.age(newAge);
-        this.graphic.x = newPos.x+this.offset;
-        this.graphic.y = newPos.y+this.offset;
+        var moveTween = createjs.Tween.get(this.graphic,{loop:false})
+            .to({x: newPos.x+this.offset, y:newPos.y+this.offset, rotation:0},100,createjs.Ease.linear);
     };
     
     this.destruct = function(container){
@@ -1507,6 +1549,8 @@ function updateStars(ratio){
 //region GAME
 var currentLevel = 0;
 var levels = [];
+var titleText;
+var pauseButton;
 var QueueContainer = [];
 var QueueBorder = [];
 var elementQueue = [];
@@ -1523,6 +1567,7 @@ var bottomBarBorder;
 var leftBar;
 var stars = [];
 var victory;
+var paused = false;
 
 function Level(title,world,turns,goalamount,gameSize,numStatic){
     this.world = world;
@@ -1599,6 +1644,7 @@ function Level(title,world,turns,goalamount,gameSize,numStatic){
     this.setSpawners = function(){};
     
     this.setupGrid = function(container){
+        titleText.text = this.title;
         turnsText.text = this.game.getTurnCount();
         pop.text = "Pop: " + this.game.getPopulation();
         goal.text = " / "+ this.goalAmount;
@@ -1631,10 +1677,12 @@ function Level(title,world,turns,goalamount,gameSize,numStatic){
     };
     
     this.place = function(container){
-        if(mouse.pos.sub(this.grid.pos).withinBox(this.grid.dim)){
+        if(mouse.pos.sub(this.grid.pos).withinBox(this.grid.dim)&&!paused){
             var index = mouse.pos.sub(this.grid.pos).div(this.grid.dim.x/this.grid.cells.x);
             var flooredIndex = index.floor();
             var queryInfo = this.game.QueryMove(flooredIndex,this.game.itemQ(0));
+            if(queryInfo.cells.length>1)createjs.Sound.play("kaching");
+            else createjs.Sound.play("tick");
             if(this.game.itemQ(0).type==ItemType.BlackHole){
                 if(this.game.HazardAt(flooredIndex)){
                     this.game.ApplyMove(flooredIndex,this.game.popFromQ(),queryInfo);
@@ -1745,10 +1793,53 @@ function initGameScene(container) {
     goal.x = 680;
     goal.y = 100; 
     
+    titleText = new createjs.Text("", "24px Quantico", "#FFF");
+    titleText.x = 200;
+    titleText.y = 5;
+    
+    pauseButton = CreateButtonFromSprite(spriteSheets.makeMiniButton(),"miniMenu",    function() { 
+            paused = true;
+            var subMenu = loadImage("pauseMenu");
+            var pausedText = new createjs.Text("Paused", "italic 60px Orbitron", "#FFF");
+            pausedText.x = 270;
+            pausedText.y = 150; 
+            container.addChild(subMenu);
+            container.addChild(pausedText);
+            var mbtn = [];
+            mbtn.push(CreateButtonFromSprite(spriteSheets.makeMiniButton(),"miniBack",    function() {
+                paused = false;
+                createjs.Sound.play("tick");
+                mbtn.map(function(item) {
+                    container.removeChild(item);
+                });
+                container.removeChild(subMenu);
+                container.removeChild(pausedText);
+            }));
+            mbtn[0].x=400;
+            mbtn[0].y=350;
+            mbtn.push(CreateButtonFromSprite(spriteSheets.makeMiniButton(),"miniQuit",    function() {
+                paused = false;
+                createjs.Sound.play("tick");
+                mbtn.map(function(item) {
+                    container.removeChild(item);
+                });
+                container.removeChild(subMenu);
+                container.removeChild(pausedText);
+                CurrentGameState = GameStates.StartScreen;
+            }));
+            mbtn[1].x=400;
+            mbtn[1].y=400;
+            mbtn.map(function(item) {
+                container.addChild(item);
+            });
+            createjs.Sound.play("tick");
+        });
+    pauseButton.x = 15;
+    pauseButton.y = 30;
     
     levels[0] = new Level("Welcome", 1 , 15, 30, new Coord(3,3),0);
     
-    levels[1] = new Level("Shrubs", 1 , 30, 60, new Coord(7,7),6);
+    levels[1] = new Level("Shrubs", 1 , 30, 60, new Coord(5,5),6);
     
     levels[2] = new Level("Hazards", 2 , 40, 80, new Coord(5,5),0);
     levels[2].setSpawners = function(){
@@ -1834,6 +1925,8 @@ function initGameScene(container) {
         container.addChild(rightBarBorder);
         container.addChild(rightBar);
         container.addChild(turnsLabel);
+        container.addChild(pauseButton);
+        container.addChild(titleText);
         
         for(var i=0; i<4; i++){
             container.addChild(QueueBorder[i]);   
@@ -1876,6 +1969,8 @@ function initGameScene(container) {
         container.removeChild(rightBarBorder);
         container.removeChild(rightBar);
         container.removeChild(turnsLabel);
+        container.removeChild(pauseButton);
+        container.removeChild(titleText);
         
         for(var i=0; i<4; i++){
             container.removeChild(QueueBorder[i]);   
