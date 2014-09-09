@@ -586,7 +586,7 @@ function init() {
             var subMenu = loadImage("levelSelect");
             CurrentGameState.container.addChild(subMenu);
             var mBTN = [];
-            mBTN.push(CreateButtonFromSprite(spriteSheets.makeMiniButton(),"miniBack",    function() {
+            mBTN.push(CreateButtonFromSprite(spriteSheets.makeButton(),"menu",    function() {
                 createjs.Sound.play("tick");
                 mBTN.map(function(item) {
                     GameStates.StartScreen.container.removeChild(item);
@@ -686,8 +686,8 @@ function init() {
     {
         var BTN_mainMenu = spriteSheets.makeButton();
         CreateButtonFromSprite(BTN_mainMenu,"menu",function() { CurrentGameState = GameStates.StartScreen; createjs.Sound.play("tick");});
-        BTN_mainMenu.x = stage.canvas.width - BTN_mainMenu.getBounds().width - PADDING;
-        BTN_mainMenu.y = stage.canvas.height - BTN_mainMenu.getBounds().height - PADDING;
+        BTN_mainMenu.x = stage.canvas.width - BTN_mainMenu.getBounds().width - PADDING+20;
+        BTN_mainMenu.y = stage.canvas.height - BTN_mainMenu.getBounds().height - PADDING+20;
         GameStates.Instructions.container.addChild(BTN_mainMenu);
         
     }
