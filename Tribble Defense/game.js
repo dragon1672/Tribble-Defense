@@ -398,7 +398,7 @@ function initSprites() {
     
     var miniButtonSheet = new createjs.SpriteSheet({
         images: [queue.getResult("miniButton")],
-        frames: {width: 127, height: 34, regX: 64, regY: 17},
+        frames: {width: 127, height: 33, regX: 64, regY: 17},
         animations: {
         miniMenuUp:   [0, 0, "miniMenuUp"],
         miniMenuOver: [1, 1, "miniMenuOver"],
@@ -1608,7 +1608,7 @@ function Agent(container,coords,pos,dim,type,lifespan){
         this.age(newAge);
         
         var moveTween = createjs.Tween.get(this.graphic,{loop:false})
-            .to({x: newPos.x+this.offset, y:newPos.y+this.offset, rotation:0},250,createjs.Ease.linear).call(refresher);
+            .to({x: newPos.x+this.offset, y:newPos.y+this.offset, scaleX:(this.dim.x/128)*(newAge/this.lifespan), scaleY:(this.dim.y/128)*(newAge/this.lifespan) },250,createjs.Ease.linear).call(refresher);
     };
     
     this.destruct = function(container){
@@ -1624,11 +1624,11 @@ function Agent(container,coords,pos,dim,type,lifespan){
     };
     
     this.age = function(newAge){
-        this.graphic.scaleX = (this.dim.x/128)*(newAge/this.lifespan);
-        this.graphic.scaleY = (this.dim.y/128)*(newAge/this.lifespan);
+        //this.graphic.scaleX = (this.dim.x/128)*(newAge/this.lifespan);
+        //this.graphic.scaleY = (this.dim.y/128)*(newAge/this.lifespan);
         this.offset = (this.dim.x/2)*(1-(newAge/this.lifespan));
-        this.graphic.x += this.offset;
-        this.graphic.y += this.offset;
+        //this.graphic.x += this.offset;
+        //this.graphic.y += this.offset;
     };
 }
 
