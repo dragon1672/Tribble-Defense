@@ -1623,7 +1623,7 @@ function Grid(container, cells, pos, dim){
     this.dim = dim;
     this.pos = pos;
     this.cells = cells;
-    this.agents = new HashSet();
+    this.agents = new HashMap();
     this.squares = [];
     for(var i=0; i<cells.x; i++){
         this.squares[i] = [];
@@ -1665,25 +1665,20 @@ function Grid(container, cells, pos, dim){
         if(this.squares[i.x][i.y].misc!==0){this.squares[i.x][i.y].misc=0;}
         this.refresh(container);
     };
-    this.spawnHazard = function(container,i,haz,lifespan){
+    this.spawnHazard = function(container,i,haz,realHaz){
         var spos = new Coord(i.x*(dim.x/cells.x)+pos.x,i.y*(dim.y/cells.y)+pos.y);
         var sdim = new Coord(dim.x/cells.x,dim.y/cells.y);
-        this.agents.add( new Agent(container,i,spos,sdim,haz,lifespan));
+        this.agents.add(realHaz,new Agent(container,i,spos,sdim,haz,realHaz.level));
     };
-    this.moveHazard = function(oldPos,newPos,newAge){
+    this.moveHazard = function(hazard,newPos){
         var spos = new Coord(newPos.x*(dim.x/cells.x)+pos.x,newPos.y*(dim.y/cells.y)+pos.y);
-        this.hazardAt(oldPos).move(newPos,spos,newAge);
+        var agent = this.agents.get(hazard);
+        agent.move(newPos,spos,hazard.level);
     };
-    this.hazardAt = function(i){
-        var ret = null;
-        this.agents.foreachInSet(function(item) {
-            if(item.coords.isEqual(i)){ ret = item;}
-        });
-        return ret;
-    };
-    this.removeHazard = function(container,i){
-        this.hazardAt(i).destruct(container);
-        this.agents.remove(this.hazardAt(i));
+    this.removeHazard = function(container,haz){
+        var agent = this.agents.get(haz);
+        agent.destruct(container);
+        this.agents.remove(agent);
     };
     
     this.randomStatic = function(container,amount){
@@ -1696,20 +1691,22 @@ function Grid(container, cells, pos, dim){
         }
     };
     this.destruct = function(container){
+        var started = 6;
+        started++;
         for(var i=0; i<cells.x; i++){
             for(var j=0; j<cells.y; j++){
                 this.squares[i][j].destruct(container);
                 this.squares[i][j] = null;
             }
         }
-        this.agents.foreachInSet(function(item) {
-            item.destruct(container);
+        this.agents.foreachInSet(function(key,val) {
+            val.destruct(container);
         });
     };
     this.refresh = function(container){
-        this.agents.foreachInSet(function(item) {
-            container.removeChild(item.graphic);
-            container.addChild(item.graphic);
+        this.agents.foreachInSet(function(key,val) {
+            container.removeChild(val.graphic);
+            container.addChild(val.graphic);
         });
     };
 }
@@ -1824,13 +1821,13 @@ function Level(title,world,turns,goalamount,gameSize,numStatic){
             else {pineapple.grid.clear(container,pos);}
         });
         this.game.hazardSpawnedEvent.addCallBack(function(pos,hazard){
-            pineapple.grid.spawnHazard(container,pos,pineapple.grid.getHazardType(pos),hazard.level);
+            pineapple.grid.spawnHazard(container,pos,pineapple.grid.getHazardType(pos),hazard);
         });
         this.game.hazardMovedEvent.addCallBack(function(oldPos,newPos,hazard){
-            pineapple.grid.moveHazard(oldPos,newPos,hazard.level);
+            pineapple.grid.moveHazard(hazard,newPos);
         });
         this.game.hazardRemovedEvent.addCallBack(function(pos,hazard){
-            pineapple.grid.removeHazard(container,pos); 
+            pineapple.grid.removeHazard(container,hazard); 
         });
     };
     
