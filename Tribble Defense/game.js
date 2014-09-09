@@ -1367,7 +1367,7 @@ var Game = (function() {
         this.foreachCell(function(cell) {
             ret += cell.item !== null ? cell.item.population : 0;
         });
-        return ret;
+        return Math.floor(ret);
     };
     
     Game.prototype.withinVertBounds = function(pos) {
