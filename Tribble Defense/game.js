@@ -878,6 +878,7 @@ var HashTable, HashMap;
 	function HashTable() {
 		this.pairs = [];
 		this.orderedPairs = [];
+        this.numOfActiveIterations = 0;
 	}
 	function KeyValuePair(hash, key, val) {
 		this.hash = hash;
@@ -890,8 +891,6 @@ var HashTable, HashMap;
         return (typeof value) + ' ' + (value instanceof Object ? (value.__hash || (value.__hash = ++arguments.callee.current)) : value.toString());
     };
     hasher.current = 0;
-    
-    this.numOfActiveIterations = 0;
     
     HashTable.prototype.hashObject = hasher;
 	KeyValuePair.prototype.containsKey = function (key) { return this.key === key; };
@@ -1178,6 +1177,9 @@ var Game = (function() {
         this.spawners = [];
         this.trackedHazards = new HashSet();
 
+        
+        this.cheats = false;
+        
         //region events
 
         //function(pos,oldItem, new item)
@@ -1188,6 +1190,9 @@ var Game = (function() {
         this.hazardMovedEvent = new GameEvent();
         //function(pos,hazard)
         this.hazardRemovedEvent = new GameEvent();
+        
+        //function(pos,olditem,newitem) // fires in addition to item changed
+        this.itemLostLevels = new GameEvent();
 
         //function()
         this.itemQChangedEvent = new GameEvent();
@@ -1448,17 +1453,18 @@ var Game = (function() {
             if(cell !== null && cell.item !== null && cell.item.type === ItemType.Housing) {
                 //hazard beats item
                 var changed = false;
-                while(item.getLevel() > 0 && cell.item.getLevel() > 0) {
+                while(!potato.cheats && item.getLevel() > 0 && cell.item.getLevel() > 0) {
                     item.decreaseLevel();
                     cell.item.decreaseLevel();
                     changed = true;
                 }
                 if(changed) {
+                    var oldItem = cell.item;
                     if(cell.item.getLevel() === 0) {
-                        var oldItem = cell.item;
                         cell.item = null;
-                        potato.itemChangedEvent.callAll(cell.pos,oldItem,cell.item);
                     }
+                    potato.itemChangedEvent.callAll(cell.pos,oldItem,cell.item);
+                    potato.itemLostLevels.callAll(cell.pos,oldItem,cell.item);
                 }
             }
             item.decreaseLevel();
@@ -1653,7 +1659,7 @@ function Grid(container, cells, pos, dim){
     };
     
     this.placeElement = function(container,i,lev){
-        this.squares[i.x][i.y].changeItem(container,lev+elementBuf);
+        this.squares[i.x][i.y].changeItem(container,lev+elementBuf); // asdfasdf
     };
     
     this.placeStatic = function(container,i,type){

@@ -75,6 +75,7 @@ var HashTable, HashMap;
 	function HashTable() {
 		this.pairs = [];
 		this.orderedPairs = [];
+        this.numOfActiveIterations = 0;
 	}
 	function KeyValuePair(hash, key, val) {
 		this.hash = hash;
@@ -87,8 +88,6 @@ var HashTable, HashMap;
         return (typeof value) + ' ' + (value instanceof Object ? (value.__hash || (value.__hash = ++arguments.callee.current)) : value.toString());
     };
     hasher.current = 0;
-    
-    this.numOfActiveIterations = 0;
     
     HashTable.prototype.hashObject = hasher;
 	KeyValuePair.prototype.containsKey = function (key) { return this.key === key; };
@@ -371,6 +370,8 @@ var Game = (function() {
         this.Grid = [];
         this.ComboBoost = 3;
         this.avalableItemPool = [];
+        
+        this.cheats = false;
 
         this.spawners = [];
         this.trackedHazards = new HashSet();
@@ -536,10 +537,10 @@ var Game = (function() {
                 preloadedQuery.alreadyOccupied = thisCell.item !== null;
                 thisCell.item = null;
                 var hazards = this.getHazardAt(pos);
-                var potato = this;
+                var pineTree = this;
                 hazards.map(function(item) {
-                    potato.hazardRemovedEvent.callAll(item.pos,item);
-                    potato.removeHazard(item);
+                    pineTree.hazardRemovedEvent.callAll(item.pos,item);
+                    pineTree.removeHazard(item);
                 });
             }
         }
@@ -640,7 +641,6 @@ var Game = (function() {
         this.trackedHazards.foreachInSet(function(item) {
             var oldPos = item.pos;
             item.pos = item.pos.add(item.direction);
-            potato.hazardMovedEvent.callAll(oldPos,item.pos,item);
             var cell = potato.getCell(item.pos);
             if(cell !== null && cell.item !== null && cell.item.type === ItemType.Housing) {
                 //hazard beats item
@@ -664,6 +664,8 @@ var Game = (function() {
             if(item.getLevel() <= 0 || !potato.movingInBounds(item.pos,item.direction)) {
                 potato.hazardRemovedEvent.callAll(item.pos,item);
                 potato.removeHazard(item);
+            } else {
+                potato.hazardMovedEvent.callAll(oldPos,item.pos,item);
             }
         });
         this.spawners.map(function(item) {
