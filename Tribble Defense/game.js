@@ -836,36 +836,42 @@ function Select(array,selector) {
     return ret;
 }
 
-function Coord() {
-    return Coord(0,0);
-}
-function Coord(existingCoord) {
-    return Coord(existingCoord.x,existingCoord.y);
-}
-function Coord(x,y) {
-    this.x = x;
-    this.y = y;
-}
-Coord.prototype.isEqual  = function(that) { return this.x === that.x && this.y === that.y; };
-Coord.prototype.toString = function() { return "{"+this.x+","+this.y+"}"; };
-//math
-Coord.prototype.add = function(that)     { return new Coord(this.x+that.x,this.y+that.y); };
-Coord.prototype.sub = function(that)     { return new Coord(this.x-that.x,this.y-that.y); };
-Coord.prototype.mul = function(constent) { return new Coord(constent * this.x,constent * this.y); };
-Coord.prototype.div = function(constent) { return this.mul(1/constent); };
-Coord.prototype.dot = function(that)     { return this.x * that.x + this.y * that.y; };
-Coord.prototype.lengthSquared = function() { return this.dot(this); };
-Coord.prototype.length     = function()    { return Math.sqrt(this.lengthSquared(this)); };
-Coord.prototype.normalized = function()    { return new Coord(this.x,this.y).div(Math.sqrt(this.lengthSquared(this))); };
-Coord.prototype.perpCW     = function()    { return new Coord(-this.y,this.x); };
-Coord.prototype.perpCCW    = function()    { return new Coord(this.y,-this.x); };
-Coord.prototype.LERP       = function(percent, that) { return this.mul(1-percent).add(that.mul(percent)); };
-Coord.prototype.cross      = function(that) { return this.x * that.y - this.y * that.x; };
-Coord.prototype.projection = function(norm) { return (this.dot(norm).mul(norm)).div(norm.lengthSquared()); };
-Coord.prototype.rejection  = function(norm) { return this.sub(this.projection(norm)); };
-Coord.prototype.isZero     = function()     { return this.x === 0 && this.y === 0;};
-Coord.prototype.withinBox  = function(exclusiveBounds) { return this.x >= 0 && this.y >= 0 && this.x < exclusiveBounds.x && this.y < exclusiveBounds.y; };
+var Vec2, Coord;
+Vec2 = Coord = (function(){
+    function Coord(x,y) {
+        if(x===undefined) {
+            this.x = 0;
+            this.y = 0;
+        } else if(y === undefined) {
+            this.x = y.x;
+            this.y = y.y;
+        } else {
+            this.x = x;
+            this.y = y;
+        }
+    }
+    Coord.prototype.isEqual  = function(that) { return this.x === that.x && this.y === that.y; };
+    Coord.prototype.toString = function() { return "{"+this.x+","+this.y+"}"; };
+    //math
+    Coord.prototype.add = function(that)     { return new Coord(this.x+that.x,this.y+that.y); };
+    Coord.prototype.sub = function(that)     { return new Coord(this.x-that.x,this.y-that.y); };
+    Coord.prototype.mul = function(constent) { return new Coord(constent * this.x,constent * this.y); };
+    Coord.prototype.div = function(constent) { return this.mul(1/constent); };
+    Coord.prototype.dot = function(that)     { return this.x * that.x + this.y * that.y; };
+    Coord.prototype.lengthSquared = function() { return this.dot(this); };
+    Coord.prototype.length     = function()    { return Math.sqrt(this.lengthSquared(this)); };
+    Coord.prototype.normalized = function()    { return new Coord(this.x,this.y).div(Math.sqrt(this.lengthSquared(this))); };
+    Coord.prototype.perpCW     = function()    { return new Coord(-this.y,this.x); };
+    Coord.prototype.perpCCW    = function()    { return new Coord(this.y,-this.x); };
+    Coord.prototype.LERP       = function(percent, that) { return this.mul(1-percent).add(that.mul(percent)); };
+    Coord.prototype.cross      = function(that) { return this.x * that.y - this.y * that.x; };
+    Coord.prototype.projection = function(norm) { return (this.dot(norm).mul(norm)).div(norm.lengthSquared()); };
+    Coord.prototype.rejection  = function(norm) { return this.sub(this.projection(norm)); };
+    Coord.prototype.isZero     = function()     { return this.x === 0 && this.y === 0;};
+    Coord.prototype.withinBox  = function(exclusiveBounds) { return this.x >= 0 && this.y >= 0 && this.x < exclusiveBounds.x && this.y < exclusiveBounds.y; };
 Coord.prototype.wrapByBox  = function(exclusiveBounds) { return new Coord(this.x % exclusiveBounds.x + (this.x < 0 ? exclusiveBounds.x-1 : 0) , this.y % exclusiveBounds.y + (this.y < 0 ? exclusiveBounds.y-1 : 0)); };
+}());
+
 //endregion
 
 //region hasy
@@ -1191,7 +1197,7 @@ var Game = (function() {
         //function(pos,hazard)
         this.hazardRemovedEvent = new GameEvent();
         
-        //function(pos,olditem,newitem) // fires in addition to item changed
+        //function(pos,olditem,newitem,hazard) // fires in addition to item changed
         this.itemLostLevels = new GameEvent();
 
         //function()
@@ -1464,7 +1470,7 @@ var Game = (function() {
                         cell.item = null;
                     }
                     potato.itemChangedEvent.callAll(cell.pos,oldItem,cell.item);
-                    potato.itemLostLevels.callAll(cell.pos,oldItem,cell.item);
+                    potato.itemLostLevels.callAll(cell.pos,oldItem,cell.item,item);
                 }
             }
             item.decreaseLevel();
