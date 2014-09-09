@@ -200,6 +200,7 @@ var manifest = [
     {src:"images/Static/blueTreeBlock.png", id:"bluTree"},
     {src:"images/buttons.png", id:"button"},
     {src:"images/miniButtons.png", id:"miniButton"},
+    {src:"images/levelSelectionButtons.png", id:"levelButton"},
     {src:"images/SpeakerOn.png", id:"SpeakerOn"},
     {src:"audio/StartScreen.mp3", id:"StartScreen"},
     {src:"images/SpeakerOff.png", id:"SpeakerOff"},
@@ -283,12 +284,16 @@ var backgroundMusic = {
 var spriteSheets = {
     buttons: null,
     miniButtons: null,
+    levelButtons: null,
     stars: null,
     makeButton: function() {
         return (new createjs.Sprite(this.buttons));
     },
     makeMiniButton: function() {
         return (new createjs.Sprite(this.miniButtons));
+    },
+    makeLevelButton: function() {
+        return (new createjs.Sprite(this.levelButtons));
     },
     makeStar: function() {
         return (new createjs.Sprite(this.stars));
@@ -402,6 +407,29 @@ function initSprites() {
         } 
     });
     spriteSheets.miniButtons = miniButtonSheet;
+    
+    var levelButtonSheet = new createjs.SpriteSheet({
+        images: [queue.getResult("levelButton")],
+        frames: {width: 117, height: 117, regX: 58, regY: 58},
+        animations: {
+        level1Up:   [0, 0,   "level1Up"],
+        level1Over: [1, 1,   "level1Over"],
+        level1Down: [2, 2,   "level1Down"],
+        level2Up:   [3, 3,   "level2Up"],
+        level2Over: [4, 4,   "level2Over"],
+        level2Down: [5, 5,   "level2Down"],
+        level3Up:   [6, 6,   "level3Up"],
+        level3Over: [7, 7,   "level3Over"],
+        level3Down: [8, 8,   "level3Down"],
+        level4Up:   [9, 9,   "level4Up"],
+        level4Over: [10, 10, "level4Over"],
+        level4Down: [11, 11, "level4Down"],
+        level5Up:   [12, 12, "level5Up"],
+        level5Over: [13, 13, "level5Over"],
+        level5Down: [14, 14, "level5Down"],
+        } 
+    });
+    spriteSheets.levelButtons = levelButtonSheet;
     //This takes the images loaded from the sprite sheet and breaks it into the individual frames. I cut and pasted the 'frames' parameter from the .js file created by Flash when I exported in easelJS format. I didn't cut and paste anything except 'frames' because I am using preloadJS to load all the images completely before running the game. That's what the queue.getResult is all about.
     
     var starSheet = new createjs.SpriteSheet({
@@ -544,6 +572,9 @@ function init() {
         BTN.push(CreateButtonFromSprite(spriteSheets.makeButton(),"play",    function() { CurrentGameState = GameStates.Game;createjs.Sound.play("tick");}));
         BTN.push(CreateButtonFromSprite(spriteSheets.makeButton(),"instruct",function() { CurrentGameState = GameStates.Instructions; createjs.Sound.play("tick");}));
         BTN.push(CreateButtonFromSprite(spriteSheets.makeButton(),"level",    function() { 
+            BTN.map(function(item) {
+                GameStates.StartScreen.container.removeChild(item);
+            });
             var subMenu = loadImage("levelSelect");
             CurrentGameState.container.addChild(subMenu);
             var mBTN = [];
@@ -552,10 +583,83 @@ function init() {
                 mBTN.map(function(item) {
                     GameStates.StartScreen.container.removeChild(item);
                 });
+                BTN.map(function(item) {
+                    GameStates.StartScreen.container.addChild(item);
+                });
                 GameStates.StartScreen.container.removeChild(subMenu);
             }));
             mBTN[0].x=400;
-            mBTN[0].y=400;
+            mBTN[0].y=450;
+            mBTN.push(CreateButtonFromSprite(spriteSheets.makeLevelButton(),"level1",    function() {
+                createjs.Sound.play("tick");
+                mBTN.map(function(item) {
+                    GameStates.StartScreen.container.removeChild(item);
+                });
+                BTN.map(function(item) {
+                    GameStates.StartScreen.container.addChild(item);
+                });
+                GameStates.StartScreen.container.removeChild(subMenu);
+                currentLevel=0;
+                CurrentGameState = GameStates.Game;
+            }));
+            mBTN[1].x=200;
+            mBTN[1].y=430;
+            mBTN.push(CreateButtonFromSprite(spriteSheets.makeLevelButton(),"level2",    function() {
+                createjs.Sound.play("tick");
+                mBTN.map(function(item) {
+                    GameStates.StartScreen.container.removeChild(item);
+                });
+                BTN.map(function(item) {
+                    GameStates.StartScreen.container.addChild(item);
+                });
+                GameStates.StartScreen.container.removeChild(subMenu);
+                currentLevel=1;
+                CurrentGameState = GameStates.Game;
+            }));
+            mBTN[2].x=275;
+            mBTN[2].y=310;
+            mBTN.push(CreateButtonFromSprite(spriteSheets.makeLevelButton(),"level3",    function() {
+                createjs.Sound.play("tick");
+                mBTN.map(function(item) {
+                    GameStates.StartScreen.container.removeChild(item);
+                });
+                BTN.map(function(item) {
+                    GameStates.StartScreen.container.addChild(item);
+                });
+                GameStates.StartScreen.container.removeChild(subMenu);
+                currentLevel=2;
+                CurrentGameState = GameStates.Game;
+            }));
+            mBTN[3].x=400;
+            mBTN[3].y=280;
+            mBTN.push(CreateButtonFromSprite(spriteSheets.makeLevelButton(),"level4",    function() {
+                createjs.Sound.play("tick");
+                mBTN.map(function(item) {
+                    GameStates.StartScreen.container.removeChild(item);
+                });
+                BTN.map(function(item) {
+                    GameStates.StartScreen.container.addChild(item);
+                });
+                GameStates.StartScreen.container.removeChild(subMenu);
+                currentLevel=3;
+                CurrentGameState = GameStates.Game;
+            }));
+            mBTN[4].x=525;
+            mBTN[4].y=310;
+            mBTN.push(CreateButtonFromSprite(spriteSheets.makeLevelButton(),"level5",    function() {
+                createjs.Sound.play("tick");
+                mBTN.map(function(item) {
+                    GameStates.StartScreen.container.removeChild(item);
+                });
+                BTN.map(function(item) {
+                    GameStates.StartScreen.container.addChild(item);
+                });
+                GameStates.StartScreen.container.removeChild(subMenu);
+                currentLevel=4;
+                CurrentGameState = GameStates.Game;
+            }));
+            mBTN[5].x=600;
+            mBTN[5].y=430;
             mBTN.map(function(item) {
                 GameStates.StartScreen.container.addChild(item);
             });
@@ -1419,16 +1523,38 @@ function Square(pos,dim){
     this.misc = 0;
     
     this.changeItem = function(container,newIndex) {
-        container.removeChild(this.graphic);
+        
         this.fill(container,newIndex);
     };
     this.fill = function(container,index){
-        this.graphic = allGraphic[index].clone();
-        this.graphic.x = this.pos.x;
-        this.graphic.y = this.pos.y;
-        this.graphic.scaleX = this.dim.x/128;
-        this.graphic.scaleY = this.dim.y/128;
-        container.addChild(this.graphic);
+        if(index!==0)
+        {
+            container.removeChild(this.graphic);
+            this.graphic = allGraphic[index].clone();
+            this.graphic.x = this.pos.x;
+            this.graphic.y = this.pos.y+this.dim.y;
+            this.graphic.scaleX=this.dim.x/128;
+            this.graphic.scaleY=0.2;
+            var moveTween = createjs.Tween.get(this.graphic,{loop:false})
+                .to({y:this.pos.y-this.dim.y*0.40, scaleY:this.dim.y/96},100,createjs.Ease.linear)
+                .to({y:this.pos.y, scaleY:this.dim.y/128},100,createjs.Ease.linear);
+            container.addChild(this.graphic);
+        }
+        else if(this.graphic){
+            
+            var moveTween = createjs.Tween.get(this.graphic,{loop:false})
+                .to({y:this.pos.y-this.dim.y*0.40, scaleY:this.dim.y/96},100,createjs.Ease.linear)
+                .to({y:this.pos.y+this.dim.y, scaleY:0.2},100,createjs.Ease.linear)
+                .call(this.animHelper);
+        }
+        else {
+            this.graphic = allGraphic[index].clone();
+            this.graphic.x = this.pos.x;
+            this.graphic.y = this.pos.y;
+            this.graphic.scaleX=this.dim.x/128;
+            this.graphic.scaleY=this.dim.y/128;  
+            container.addChild(this.graphic);
+        }
     };
     this.destruct = function(container){
         this.pos=0;
@@ -1436,6 +1562,16 @@ function Square(pos,dim){
         this.misc=0;
         container.removeChild(this.graphic);
         this.graphic=null;
+    };
+    var spud = this;
+    this.animHelper = function(){
+        GameStates.Game.container.removeChild(spud.graphic);
+        spud.graphic = allGraphic[0].clone();
+        spud.graphic.x = spud.pos.x;
+        spud.graphic.y = spud.pos.y;
+        spud.graphic.scaleX=spud.dim.x/128;
+        spud.graphic.scaleY=spud.dim.y/128;
+        GameStates.Game.container.addChild(spud.graphic);
     };
 }
 
@@ -1457,7 +1593,7 @@ function Agent(container,coords,pos,dim,type,lifespan){
         this.coords =newCoords;
         this.age(newAge);
         var moveTween = createjs.Tween.get(this.graphic,{loop:false})
-            .to({x: newPos.x+this.offset, y:newPos.y+this.offset, rotation:0},100,createjs.Ease.linear);
+            .to({x: newPos.x+this.offset, y:newPos.y+this.offset, rotation:0},250,createjs.Ease.linear).call(refresher);
     };
     
     this.destruct = function(container){
@@ -1566,6 +1702,11 @@ function Grid(container, cells, pos, dim){
         });
     };
 }
+
+function refresher(){
+    levels[currentLevel].grid.refresh(GameStates.Game.container);
+}
+
 
 function updateStars(ratio){ 
     stars[0].gotoAndStop("empty");
@@ -1835,8 +1976,8 @@ function initGameScene(container) {
     goal.y = 100; 
     
     titleText = new createjs.Text("", "24px Quantico", "#FFF");
-    titleText.x = 200;
-    titleText.y = 5;
+    titleText.x = 250;
+    titleText.y = 2;
     
     pauseButton = CreateButtonFromSprite(spriteSheets.makeMiniButton(),"miniMenu",    function() { 
             paused = true;
@@ -1875,14 +2016,14 @@ function initGameScene(container) {
             });
             createjs.Sound.play("tick");
         });
-    pauseButton.x = 15;
-    pauseButton.y = 30;
+    pauseButton.x = 75;
+    pauseButton.y = 24;
     
     levels[0] = new Level("Welcome", 1 , 15, 30, new Coord(3,3),0);
     
     levels[1] = new Level("Shrubs", 1 , 30, 60, new Coord(5,5),6);
     
-    levels[2] = new Level("Hazards", 2 , 40, 80, new Coord(5,5),0);
+    levels[2] = new Level("Hazards", 2 , 50, 80, new Coord(5,5),0);
     levels[2].setSpawners = function(){
         levels[2].game.addSpawner(new Spawner(5,8,2,3));
         levels[2].game.spawners[0].pos = new Coord(2,2);
@@ -1895,7 +2036,7 @@ function initGameScene(container) {
         levels[2].game.spawners[0].directions[6] = new Coord(1,0);
         levels[2].game.spawners[0].directions[7] = new Coord(-1,0);
     };
-    levels[3] = new Level("Challenge", 1 , 40, 80, new Coord(6,6),4);
+    levels[3] = new Level("Challenge", 1 , 45, 80, new Coord(6,6),4);
     levels[3].setSpawners = function(){
         levels[3].game.addSpawner(new Spawner(5,8,3,5));
         levels[3].game.spawners[0].pos = new Coord(1,4);
@@ -1906,10 +2047,10 @@ function initGameScene(container) {
         levels[3].game.spawners[1].directions[0] = new Coord(0,1);
         levels[3].game.spawners[1].directions[1] = new Coord(1,1);
     };
-    levels[4] = new Level("Freedom", 2 , 999, 1, new Coord(10,10),10);
+    levels[4] = new Level("Die Already", 2 , 40, 50, new Coord(6,6),2);
     levels[4].setSpawners = function(){
         levels[4].game.addSpawner(new Spawner(1,2,3,4));
-        levels[4].game.spawners[0].pos = new Coord(2,2);
+        levels[4].game.spawners[0].pos = new Coord(1,1);
         levels[4].game.spawners[0].directions[0] = new Coord(0,-1);
         levels[4].game.spawners[0].directions[1] = new Coord(0,1);
         levels[4].game.spawners[0].directions[2] = new Coord(1,-1);
@@ -1919,7 +2060,7 @@ function initGameScene(container) {
         levels[4].game.spawners[0].directions[6] = new Coord(1,0);
         levels[4].game.spawners[0].directions[7] = new Coord(-1,0);
         levels[4].game.addSpawner(new Spawner(1,2,3,4));
-        levels[4].game.spawners[1].pos = new Coord(7,2);
+        levels[4].game.spawners[1].pos = new Coord(4,4);
         levels[4].game.spawners[1].directions[0] = new Coord(0,-1);
         levels[4].game.spawners[1].directions[1] = new Coord(0,1);
         levels[4].game.spawners[1].directions[2] = new Coord(1,-1);
@@ -1929,7 +2070,7 @@ function initGameScene(container) {
         levels[4].game.spawners[1].directions[6] = new Coord(1,0);
         levels[4].game.spawners[1].directions[7] = new Coord(-1,0);
         levels[4].game.addSpawner(new Spawner(1,2,3,4));
-        levels[4].game.spawners[2].pos = new Coord(2,7);
+        levels[4].game.spawners[2].pos = new Coord(1,4);
         levels[4].game.spawners[2].directions[0] = new Coord(0,-1);
         levels[4].game.spawners[2].directions[1] = new Coord(0,1);
         levels[4].game.spawners[2].directions[2] = new Coord(1,-1);
@@ -1939,7 +2080,7 @@ function initGameScene(container) {
         levels[4].game.spawners[2].directions[6] = new Coord(1,0);
         levels[4].game.spawners[2].directions[7] = new Coord(-1,0);
         levels[4].game.addSpawner(new Spawner(1,2,3,4));
-        levels[4].game.spawners[3].pos = new Coord(7,7);
+        levels[4].game.spawners[3].pos = new Coord(4,1);
         levels[4].game.spawners[3].directions[0] = new Coord(0,-1);
         levels[4].game.spawners[3].directions[1] = new Coord(0,1);
         levels[4].game.spawners[3].directions[2] = new Coord(1,-1);
