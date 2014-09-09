@@ -2049,76 +2049,52 @@ function initGameScene(container) {
     
     levels[2] = new Level("Hazards", 2 , 50, 80, new Coord(5,5),0);
     levels[2].setSpawners = function(){
-        levels[2].game.addSpawner(new Spawner(5,8,2,3));
-        levels[2].game.spawners[0].pos = new Coord(2,2);
-        levels[2].game.spawners[0].directions[0] = new Coord(0,-1);
-        levels[2].game.spawners[0].directions[1] = new Coord(0,1);
-        levels[2].game.spawners[0].directions[2] = new Coord(1,-1);
-        levels[2].game.spawners[0].directions[3] = new Coord(1,1);
-        levels[2].game.spawners[0].directions[4] = new Coord(-1,-1);
-        levels[2].game.spawners[0].directions[5] = new Coord(-1,1);
-        levels[2].game.spawners[0].directions[6] = new Coord(1,0);
-        levels[2].game.spawners[0].directions[7] = new Coord(-1,0);
+        var toAdd = new Spawner(5,8,2,3);
+        toAdd.pos = new Coord(2,2);
+        for(var x=-1;x<2;x++) {
+            for(var y=-1;y<2;y++) {
+                if(x !== 0 && y !== 0) {
+                    toAdd.directions.push(new Coord(x,y));
+                }
+            }
+        }
+        levels[2].game.addSpawner(toAdd);
     };
     levels[3] = new Level("Challenge", 1 , 45, 80, new Coord(5,5),4);
     levels[3].setSpawners = function(){
-        levels[3].game.addSpawner(new Spawner(5,8,5,7));
-        levels[3].game.spawners[0].pos = new Coord(1,4);
-        levels[3].game.spawners[0].directions.push(new Coord(0,-1));
-        levels[3].game.spawners[0].directions.push(new Coord(0,-1));
-        levels[3].game.spawners[0].directions.push(new Coord(1,0));
-        levels[3].game.spawners[0].directions.push(new Coord(1,-1));
-        levels[3].game.spawners[0].directions.push(new Coord(1,-1));
-        levels[3].game.addSpawner(new Spawner(1,2,3,4));
-        levels[3].game.spawners[1].pos = new Coord(0,0);
-        levels[3].game.spawners[1].directions.push(new Coord(0,1));
-        levels[3].game.spawners[1].directions.push(new Coord(0,1));
-        levels[3].game.spawners[1].directions.push(new Coord(1,1));
-        levels[3].game.spawners[1].directions.push(new Coord(1,0));
-        levels[3].game.spawners[1].directions.push(new Coord(1,0));
+        var toAdd = new Spawner(5,8,5,7);
+        toAdd.pos = new Coord(1,4);
+        toAdd.directions.push(new Coord(0,-1));
+        toAdd.directions.push(new Coord(0,-1));
+        toAdd.directions.push(new Coord(1, 0));
+        toAdd.directions.push(new Coord(1,-1));
+        toAdd.directions.push(new Coord(1,-1));
+        levels[3].game.addSpawner(toAdd);
+        
+        toAdd = new Spawner(1,2,3,4);
+        toAdd.pos = new Coord(0,0);
+        toAdd.directions.push(new Coord(0,1));
+        toAdd.directions.push(new Coord(0,1));
+        toAdd.directions.push(new Coord(1,1));
+        toAdd.directions.push(new Coord(1,0));
+        toAdd.directions.push(new Coord(1,0));
+        levels[3].game.addSpawner(toAdd);
     };
     levels[4] = new Level("Die Already", 2 ,999, 999, new Coord(6,6),2);
     levels[4].setSpawners = function(){
-        levels[4].game.addSpawner(new Spawner(1,2,3,4));
-        levels[4].game.spawners[0].pos = new Coord(1,1);
-        levels[4].game.spawners[0].directions[0] = new Coord(0,-1);
-        levels[4].game.spawners[0].directions[1] = new Coord(0,1);
-        levels[4].game.spawners[0].directions[2] = new Coord(1,-1);
-        levels[4].game.spawners[0].directions[3] = new Coord(1,1);
-        levels[4].game.spawners[0].directions[4] = new Coord(-1,-1);
-        levels[4].game.spawners[0].directions[5] = new Coord(-1,1);
-        levels[4].game.spawners[0].directions[6] = new Coord(1,0);
-        levels[4].game.spawners[0].directions[7] = new Coord(-1,0);
-        levels[4].game.addSpawner(new Spawner(1,2,3,4));
-        levels[4].game.spawners[1].pos = new Coord(4,4);
-        levels[4].game.spawners[1].directions[0] = new Coord(0,-1);
-        levels[4].game.spawners[1].directions[1] = new Coord(0,1);
-        levels[4].game.spawners[1].directions[2] = new Coord(1,-1);
-        levels[4].game.spawners[1].directions[3] = new Coord(1,1);
-        levels[4].game.spawners[1].directions[4] = new Coord(-1,-1);
-        levels[4].game.spawners[1].directions[5] = new Coord(-1,1);
-        levels[4].game.spawners[1].directions[6] = new Coord(1,0);
-        levels[4].game.spawners[1].directions[7] = new Coord(-1,0);
-        levels[4].game.addSpawner(new Spawner(1,2,3,4));
-        levels[4].game.spawners[2].pos = new Coord(1,4);
-        levels[4].game.spawners[2].directions[0] = new Coord(0,-1);
-        levels[4].game.spawners[2].directions[1] = new Coord(0,1);
-        levels[4].game.spawners[2].directions[2] = new Coord(1,-1);
-        levels[4].game.spawners[2].directions[3] = new Coord(1,1);
-        levels[4].game.spawners[2].directions[4] = new Coord(-1,-1);
-        levels[4].game.spawners[2].directions[5] = new Coord(-1,1);
-        levels[4].game.spawners[2].directions[6] = new Coord(1,0);
-        levels[4].game.spawners[2].directions[7] = new Coord(-1,0);
-        levels[4].game.addSpawner(new Spawner(1,2,3,4));
-        levels[4].game.spawners[3].pos = new Coord(4,1);
-        levels[4].game.spawners[3].directions[0] = new Coord(0,-1);
-        levels[4].game.spawners[3].directions[1] = new Coord(0,1);
-        levels[4].game.spawners[3].directions[2] = new Coord(1,-1);
-        levels[4].game.spawners[3].directions[3] = new Coord(1,1);
-        levels[4].game.spawners[3].directions[4] = new Coord(-1,-1);
-        levels[4].game.spawners[3].directions[5] = new Coord(-1,1);
-        levels[4].game.spawners[3].directions[6] = new Coord(1,0);
-        levels[4].game.spawners[3].directions[7] = new Coord(-1,0);
+        var posToSpawnAt = [new Coord(4,4), new Coord(1,4), new Coord(4,1), new Coord(1,1)];
+        posToSpawnAt.map(function(item) {
+            var toAdd = new Spawner(1,2,3,4);
+            toAdd.pos = item;
+            for(var x=-1;x<2;x++) {
+                for(var y=-1;y<2;y++) {
+                    if(x !== 0 && y !== 0) {
+                        toAdd.directions.push(new Coord(x,y));
+                    }
+                }
+            }
+            levels[4].game.addSpawner(toAdd);
+        });
     };
     
 //endregion
