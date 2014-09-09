@@ -398,7 +398,7 @@ function initSprites() {
     
     var miniButtonSheet = new createjs.SpriteSheet({
         images: [queue.getResult("miniButton")],
-        frames: {width: 127, height: 38, regX: 64, regY: 19},
+        frames: {width: 127, height: 34, regX: 64, regY: 17},
         animations: {
         miniMenuUp:   [0, 0, "miniMenuUp"],
         miniMenuOver: [1, 1, "miniMenuOver"],
@@ -1850,7 +1850,7 @@ function Level(title,world,turns,goalamount,gameSize,numStatic){
     this.setupGrid = function(container){
         titleText.text = this.title;
         turnsText.text = this.game.getTurnCount();
-        pop.text = "Pop: " + this.game.getPopulation();
+        pop.text = "Pop: " + Math.floor(this.game.getPopulation());
         goal.text = " / "+ this.goalAmount;
         
         this.grid = new Grid(container, this.game.getDims(),new Coord(30,50),new Coord(500,500));
@@ -1910,7 +1910,16 @@ function Level(title,world,turns,goalamount,gameSize,numStatic){
     };
     
     this.update = function(){
-        turnsText.text=this.game.getTurnCount();
+        keyToggles.map(function(item) { item.update();});
+        var currentTurns = this.game.getTurnCount();
+        if(currentTurns>500){
+            turnsText.text="INF";
+            this.game.turns=900;
+            goal.text = "";
+        }
+        else{
+            turnsText.text=currentTurns;
+        }
         if(this.game.getTurnCount()===0){
             if(this.game.getPopulation()<this.goalAmount){
                 if(this.world==1){
@@ -2203,3 +2212,21 @@ function initGameScene(container) {
     };
 }
 //endregion
+
+
+
+
+
+var keyToggles = [];
+
+
+var cheat = new KeyStateManager('J');
+cheat.onClick = function() {
+    //do what you want here
+};
+
+keyToggles.push(cheat);
+
+
+//place this in an update
+//keyToggles.map(function(item) { item.update();});
