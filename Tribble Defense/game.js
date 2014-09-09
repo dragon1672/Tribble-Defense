@@ -65,33 +65,43 @@ var FPS = 30;
         this.frameCount += seconds * FPS;
     };
     
-    function Coord(existingCoord) {
-        return Coord(existingCoord.x,existingCoord.y);
-    }
-    function Coord(x,y) {
-        this.x = x || 0;
-        this.y = y || 0;
-    }
-    Coord.prototype.toString = function() { return "{"+this.x+","+this.y+"}"; };
-    Coord.prototype.isEqual  = function(that) { return this.x === that.x && this.y === that.y; };
-    //math
-    Coord.prototype.add = function(that)     { return new Coord(this.x+that.x,this.y+that.y); };
-    Coord.prototype.sub = function(that)     { return new Coord(this.x-that.x,this.y-that.y); };
-    Coord.prototype.mul = function(constent) { return new Coord(constent * this.x,constent * this.y); };
-    Coord.prototype.div = function(constent) { return this.mul(1/constent); };
-    Coord.prototype.dot = function(that)     { return this.x * that.x + this.y * that.y; };
-    Coord.prototype.lengthSquared = function() { return this.dot(this); };
-    Coord.prototype.length     = function()    { return Math.sqrt(this.lengthSquared(this)); };
-    Coord.prototype.normalized = function()    { return new Coord(this.x,this.y).div(Math.sqrt(this.lengthSquared(this))); };
-    Coord.prototype.perpCW     = function()    { return new Coord(-this.y,this.x); };
-    Coord.prototype.perpCCW    = function()    { return new Coord(this.y,-this.x); };
-    Coord.prototype.LERP       = function(percent, that) { return this.mul(1-percent).add(that.mul(percent)); };
-    Coord.prototype.cross      = function(that) { return this.x * that.y - this.y * that.x; };
-    Coord.prototype.projection = function(norm) { return (this.dot(norm).mul(norm)).div(norm.lengthSquared()); };
-    Coord.prototype.rejection  = function(norm) { return this.sub(this.projection(norm)); };
-    Coord.prototype.isZero     = function()     { return this.x === 0 && this.y === 0;};
-    Coord.prototype.withinBox  = function(exclusiveBounds) { return this.x >= 0 && this.y >= 0 && this.x < exclusiveBounds.x && this.y < exclusiveBounds.y; };
-    Coord.prototype.floor      = function()     { return new Coord(Math.floor(this.x),Math.floor(this.y)); };
+    var Vec2, Coord;
+    Vec2 = Coord = (function(){
+        function Coord(x,y) {
+            if(x===undefined) {
+                this.x = 0;
+                this.y = 0;
+            } else if(y === undefined) {
+                this.x = y.x;
+                this.y = y.y;
+            } else {
+                this.x = x;
+                this.y = y;
+            }
+        }
+        Coord.prototype.isEqual  = function(that) { return this.x === that.x && this.y === that.y; };
+        Coord.prototype.toString = function() { return "{"+this.x+","+this.y+"}"; };
+        //math
+        Coord.prototype.add = function(that)     { return new Coord(this.x+that.x,this.y+that.y); };
+        Coord.prototype.sub = function(that)     { return new Coord(this.x-that.x,this.y-that.y); };
+        Coord.prototype.mul = function(constent) { return new Coord(constent * this.x,constent * this.y); };
+        Coord.prototype.div = function(constent) { return this.mul(1/constent); };
+        Coord.prototype.dot = function(that)     { return this.x * that.x + this.y * that.y; };
+        Coord.prototype.lengthSquared = function() { return this.dot(this); };
+        Coord.prototype.length     = function()    { return Math.sqrt(this.lengthSquared(this)); };
+        Coord.prototype.normalized = function()    { return new Coord(this.x,this.y).div(Math.sqrt(this.lengthSquared(this))); };
+        Coord.prototype.perpCW     = function()    { return new Coord(-this.y,this.x); };
+        Coord.prototype.perpCCW    = function()    { return new Coord(this.y,-this.x); };
+        Coord.prototype.LERP       = function(percent, that) { return this.mul(1-percent).add(that.mul(percent)); };
+        Coord.prototype.cross      = function(that) { return this.x * that.y - this.y * that.x; };
+        Coord.prototype.projection = function(norm) { return (this.dot(norm).mul(norm)).div(norm.lengthSquared()); };
+        Coord.prototype.rejection  = function(norm) { return this.sub(this.projection(norm)); };
+        Coord.prototype.isZero     = function()     { return this.x === 0 && this.y === 0;};
+        Coord.prototype.withinBox  = function(exclusiveBounds) { return this.x >= 0 && this.y >= 0 && this.x < exclusiveBounds.x && this.y < exclusiveBounds.y; };
+        Coord.prototype.wrapByBox  = function(exclusiveBounds) { return new Coord(this.x % exclusiveBounds.x + (this.x < 0 ? exclusiveBounds.x-1 : 0) , this.y % exclusiveBounds.y + (this.y < 0 ? exclusiveBounds.y-1 : 0)); };
+        Coord.prototype.floor      = function()     { return new Coord(Math.floor(this.x),Math.floor(this.y)); };
+        return Coord;
+    }());
 
     //will have to make and manager per scene
     function KeyStateManager(KEYCODE) {
@@ -835,42 +845,6 @@ function Select(array,selector) {
     array.map(function(item) { ret.push(selector(item));});
     return ret;
 }
-
-var Vec2, Coord;
-Vec2 = Coord = (function(){
-    function Coord(x,y) {
-        if(x===undefined) {
-            this.x = 0;
-            this.y = 0;
-        } else if(y === undefined) {
-            this.x = y.x;
-            this.y = y.y;
-        } else {
-            this.x = x;
-            this.y = y;
-        }
-    }
-    Coord.prototype.isEqual  = function(that) { return this.x === that.x && this.y === that.y; };
-    Coord.prototype.toString = function() { return "{"+this.x+","+this.y+"}"; };
-    //math
-    Coord.prototype.add = function(that)     { return new Coord(this.x+that.x,this.y+that.y); };
-    Coord.prototype.sub = function(that)     { return new Coord(this.x-that.x,this.y-that.y); };
-    Coord.prototype.mul = function(constent) { return new Coord(constent * this.x,constent * this.y); };
-    Coord.prototype.div = function(constent) { return this.mul(1/constent); };
-    Coord.prototype.dot = function(that)     { return this.x * that.x + this.y * that.y; };
-    Coord.prototype.lengthSquared = function() { return this.dot(this); };
-    Coord.prototype.length     = function()    { return Math.sqrt(this.lengthSquared(this)); };
-    Coord.prototype.normalized = function()    { return new Coord(this.x,this.y).div(Math.sqrt(this.lengthSquared(this))); };
-    Coord.prototype.perpCW     = function()    { return new Coord(-this.y,this.x); };
-    Coord.prototype.perpCCW    = function()    { return new Coord(this.y,-this.x); };
-    Coord.prototype.LERP       = function(percent, that) { return this.mul(1-percent).add(that.mul(percent)); };
-    Coord.prototype.cross      = function(that) { return this.x * that.y - this.y * that.x; };
-    Coord.prototype.projection = function(norm) { return (this.dot(norm).mul(norm)).div(norm.lengthSquared()); };
-    Coord.prototype.rejection  = function(norm) { return this.sub(this.projection(norm)); };
-    Coord.prototype.isZero     = function()     { return this.x === 0 && this.y === 0;};
-    Coord.prototype.withinBox  = function(exclusiveBounds) { return this.x >= 0 && this.y >= 0 && this.x < exclusiveBounds.x && this.y < exclusiveBounds.y; };
-Coord.prototype.wrapByBox  = function(exclusiveBounds) { return new Coord(this.x % exclusiveBounds.x + (this.x < 0 ? exclusiveBounds.x-1 : 0) , this.y % exclusiveBounds.y + (this.y < 0 ? exclusiveBounds.y-1 : 0)); };
-}());
 
 //endregion
 
