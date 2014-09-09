@@ -1339,10 +1339,10 @@ var Game = (function() {
                 preloadedQuery.alreadyOccupied = thisCell.item !== null;
                 thisCell.item = null;
                 var hazards = this.getHazardAt(pos);
-                var potato = this;
+                var pineTree = this;
                 hazards.map(function(item) {
-                    potato.hazardRemovedEvent.callAll(item.pos,item);
-                    potato.removeHazard(item);
+                    pineTree.hazardRemovedEvent.callAll(item.pos,item);
+                    pineTree.removeHazard(item);
                 });
             }
         }
@@ -1549,14 +1549,14 @@ function Square(pos,dim){
             this.graphic.y = this.pos.y+this.dim.y;
             this.graphic.scaleX=this.dim.x/128;
             this.graphic.scaleY=0.2;
-            var moveTween = createjs.Tween.get(this.graphic,{loop:false})
+            createjs.Tween.get(this.graphic,{loop:false})
                 .to({y:this.pos.y-this.dim.y*0.40, scaleY:this.dim.y/96},100,createjs.Ease.linear)
                 .to({y:this.pos.y, scaleY:this.dim.y/128},100,createjs.Ease.linear);
             container.addChild(this.graphic);
         }
         else if(this.graphic){
             
-            var moveTween = createjs.Tween.get(this.graphic,{loop:false})
+            createjs.Tween.get(this.graphic,{loop:false})
                 .to({y:this.pos.y-this.dim.y*0.40, scaleY:this.dim.y/96},100,createjs.Ease.linear)
                 .to({y:this.pos.y+this.dim.y, scaleY:0.2},100,createjs.Ease.linear)
                 .call(this.animHelper);
