@@ -2034,7 +2034,7 @@ function initGameScene(container) {
     
     levels[0] = new Level("Welcome", 1 , 18, 30, new Coord(3,3),0);
     
-    levels[1] = new Level("Shrubs", 1 , 30, 60, new Coord(5,5),6);
+    levels[1] = new Level("Shrubs", 1 , 30, 60, new Coord(4,4),6);
     
     levels[2] = new Level("Hazards", 2 , 50, 80, new Coord(5,5),0);
     levels[2].setSpawners = function(){
@@ -2051,7 +2051,7 @@ function initGameScene(container) {
     };
     levels[3] = new Level("Challenge", 1 , 45, 80, new Coord(6,6),4);
     levels[3].setSpawners = function(){
-        levels[3].game.addSpawner(new Spawner(5,8,3,5));
+        levels[3].game.addSpawner(new Spawner(5,8,5,7));
         levels[3].game.spawners[0].pos = new Coord(1,4);
         levels[3].game.spawners[0].directions[0] = new Coord(0,-1);
         levels[3].game.spawners[0].directions[1] = new Coord(1,0);
