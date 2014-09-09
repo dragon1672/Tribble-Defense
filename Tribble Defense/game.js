@@ -1874,8 +1874,7 @@ function Level(title,world,turns,goalamount,gameSize,numStatic){
             var index = mouse.pos.sub(this.grid.pos).div(this.grid.dim.x/this.grid.cells.x);
             var flooredIndex = index.floor();
             var queryInfo = this.game.QueryMove(flooredIndex,this.game.itemQ(0));
-            if(queryInfo.cells.length>1)createjs.Sound.play("kaching");
-            else createjs.Sound.play("tick");
+            if(queryInfo.cells.length>1) createjs.Sound.play("kaching");
             if(this.game.itemQ(0).type==ItemType.BlackHole){
                 if(this.game.HazardAt(flooredIndex)){
                     this.game.ApplyMove(flooredIndex,this.game.popFromQ(),queryInfo);
@@ -1887,9 +1886,11 @@ function Level(title,world,turns,goalamount,gameSize,numStatic){
                     createjs.Sound.play("kabang");
                 }
                 else{ this.game.popFromQ();}
+                createjs.Sound.play("tick");
             }
             else if(!queryInfo.alreadyOccupied&&!this.grid.hasStatic(flooredIndex)){
                 this.game.ApplyMove(flooredIndex,this.game.popFromQ(),queryInfo);
+                createjs.Sound.play("tick");
             }
         }   
     };
