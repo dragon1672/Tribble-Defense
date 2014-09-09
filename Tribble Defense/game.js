@@ -1842,6 +1842,7 @@ function Level(title,world,turns,goalamount,gameSize,numStatic){
         this.game.hazardRemovedEvent.addCallBack(function(pos,hazard){
             pineapple.grid.removeHazard(container,hazard); 
         });
+        updateStars(0);
     };
     
     this.setSpawners = function(){};
@@ -2067,14 +2068,18 @@ function initGameScene(container) {
     levels[3].setSpawners = function(){
         levels[3].game.addSpawner(new Spawner(5,8,5,7));
         levels[3].game.spawners[0].pos = new Coord(1,4);
-        levels[3].game.spawners[0].directions[0] = new Coord(0,-1);
-        levels[3].game.spawners[0].directions[1] = new Coord(1,0);
-        levels[3].game.spawners[0].directions[2] = new Coord(1,-1);
+        levels[3].game.spawners[0].directions.push(new Coord(0,-1));
+        levels[3].game.spawners[0].directions.push(new Coord(0,-1));
+        levels[3].game.spawners[0].directions.push(new Coord(1,0));
+        levels[3].game.spawners[0].directions.push(new Coord(1,-1));
+        levels[3].game.spawners[0].directions.push(new Coord(1,-1));
         levels[3].game.addSpawner(new Spawner(1,2,3,4));
         levels[3].game.spawners[1].pos = new Coord(0,0);
-        levels[3].game.spawners[1].directions[0] = new Coord(0,1);
-        levels[3].game.spawners[1].directions[1] = new Coord(1,1);
-        levels[3].game.spawners[1].directions[2] = new Coord(1,0);
+        levels[3].game.spawners[1].directions.push(new Coord(0,1));
+        levels[3].game.spawners[1].directions.push(new Coord(0,1));
+        levels[3].game.spawners[1].directions.push(new Coord(1,1));
+        levels[3].game.spawners[1].directions.push(new Coord(1,0));
+        levels[3].game.spawners[1].directions.push(new Coord(1,0));
     };
     levels[4] = new Level("Die Already", 2 ,999, 999, new Coord(6,6),2);
     levels[4].setSpawners = function(){
