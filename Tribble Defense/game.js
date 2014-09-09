@@ -208,6 +208,7 @@ var manifest = [
     {src:"audio/Tick.mp3", id:"tick"},
     {src:"audio/Kaching.mp3", id:"kaching"},
     {src:"audio/KaBang.mp3", id:"kabang"},
+    {src:"audio/Fizzle.mp3", id:"fizzle"},
     {src:"images/stars.png", id:"Stars"},
     {src:"images/Hazard/LightningBolt.png", id:"bolt"},
     {src:"images/Hazard/tsunamiBlock.png", id:"tsunami"},
@@ -385,6 +386,12 @@ function initSprites() {
         levelUp:   [12, 12, "levelUp"],
         levelOver: [13, 13, "levelOver"],
         levelDown: [14, 14, "levelDown"],
+        retryUp:   [15, 15, "retryUp"],
+        retryOver: [16, 16, "retryOver"],
+        retryDown: [17, 17, "retryDown"],
+        nextUp:   [18, 18, "nextUp"],
+        nextOver: [19, 19, "nextOver"],
+        nextDown: [20, 20, "nextDown"],
         } 
     });
     spriteSheets.buttons = buttonSheet;
@@ -707,10 +714,13 @@ function init() {
             btns.push(CreateButtonFromSprite(spriteSheets.makeButton(),"menu",function() { CurrentGameState = GameStates.StartScreen; createjs.Sound.play("tick");}));
             btns[0].x = 200;
             btns[0].y = 400;
-            if(currentLevel<levels.length-1){
-                btns.push(CreateButtonFromSprite(spriteSheets.makeButton(),"play",function() { if(victory)currentLevel++;CurrentGameState = GameStates.Game; createjs.Sound.play("tick");}));
-                btns[1].x = 600;
-                btns[1].y = 400;
+            btns.push(CreateButtonFromSprite(spriteSheets.makeButton(),"retry",function() {CurrentGameState = GameStates.Game; createjs.Sound.play("tick");}));
+            btns[1].x = 600;
+            btns[1].y = 400;
+            if(currentLevel<levels.length-1&&victory){
+                btns.push(CreateButtonFromSprite(spriteSheets.makeButton(),"next",function() {currentLevel++;CurrentGameState = GameStates.Game; createjs.Sound.play("tick");}));
+                btns[2].x = 400;
+                btns[2].y = 450;
             }
             if(victory)backgroundMusic.setSoundFromString("StartScreen",true);
             else backgroundMusic.setSoundFromString("Failure",true);
@@ -729,8 +739,9 @@ function init() {
             btns.map(function(item) {
                 GameStates.GameOver.container.removeChild(item);
             });
-            btns.pop();
-            btns.pop();
+            while(btns.length>0){
+                btns.pop();
+            }
         };
     }
     CurrentGameState = GameStates.StartScreen;
@@ -1884,8 +1895,11 @@ function Level(title,world,turns,goalamount,gameSize,numStatic){
                     this.game.ApplyMove(flooredIndex,this.game.popFromQ(),queryInfo);
                     createjs.Sound.play("kabang");
                 }
-                else{ this.game.popFromQ();}
-                createjs.Sound.play("tick");
+                else{
+                    this.game.popFromQ();
+                    createjs.Sound.play("fizzle");
+                }
+                
             }
             else if(!queryInfo.alreadyOccupied&&!this.grid.hasStatic(flooredIndex)){
                 this.game.ApplyMove(flooredIndex,this.game.popFromQ(),queryInfo);
@@ -2034,7 +2048,7 @@ function initGameScene(container) {
     
     levels[0] = new Level("Welcome", 1 , 18, 30, new Coord(3,3),0);
     
-    levels[1] = new Level("Shrubs", 1 , 30, 60, new Coord(4,4),6);
+    levels[1] = new Level("Shrubs", 1 , 30, 60, new Coord(4,4),5);
     
     levels[2] = new Level("Hazards", 2 , 50, 80, new Coord(5,5),0);
     levels[2].setSpawners = function(){
@@ -2049,18 +2063,20 @@ function initGameScene(container) {
         levels[2].game.spawners[0].directions[6] = new Coord(1,0);
         levels[2].game.spawners[0].directions[7] = new Coord(-1,0);
     };
-    levels[3] = new Level("Challenge", 1 , 45, 80, new Coord(6,6),4);
+    levels[3] = new Level("Challenge", 1 , 45, 80, new Coord(5,5),4);
     levels[3].setSpawners = function(){
         levels[3].game.addSpawner(new Spawner(5,8,5,7));
         levels[3].game.spawners[0].pos = new Coord(1,4);
         levels[3].game.spawners[0].directions[0] = new Coord(0,-1);
         levels[3].game.spawners[0].directions[1] = new Coord(1,0);
+        levels[3].game.spawners[0].directions[2] = new Coord(1,-1);
         levels[3].game.addSpawner(new Spawner(1,2,3,4));
         levels[3].game.spawners[1].pos = new Coord(0,0);
         levels[3].game.spawners[1].directions[0] = new Coord(0,1);
         levels[3].game.spawners[1].directions[1] = new Coord(1,1);
+        levels[3].game.spawners[1].directions[2] = new Coord(1,0);
     };
-    levels[4] = new Level("Die Already", 2 , 40, 50, new Coord(6,6),2);
+    levels[4] = new Level("Die Already", 2 ,999, 999, new Coord(6,6),2);
     levels[4].setSpawners = function(){
         levels[4].game.addSpawner(new Spawner(1,2,3,4));
         levels[4].game.spawners[0].pos = new Coord(1,1);
