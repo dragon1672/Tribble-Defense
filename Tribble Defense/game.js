@@ -207,6 +207,7 @@ var manifest = [
     {src:"audio/TinyTick.mp3", id:"tinyTick"},
     {src:"audio/Tick.mp3", id:"tick"},
     {src:"audio/Kaching.mp3", id:"kaching"},
+    {src:"audio/KaBang.mp3", id:"kabang"},
     {src:"images/stars.png", id:"Stars"},
     {src:"images/Hazard/LightningBolt.png", id:"bolt"},
     {src:"images/Hazard/tsunamiBlock.png", id:"tsunami"},
@@ -1592,19 +1593,29 @@ function Agent(container,coords,pos,dim,type,lifespan){
     this.move = function(newCoords,newPos,newAge){
         this.coords =newCoords;
         this.age(newAge);
+        
         var moveTween = createjs.Tween.get(this.graphic,{loop:false})
             .to({x: newPos.x+this.offset, y:newPos.y+this.offset, rotation:0},250,createjs.Ease.linear).call(refresher);
     };
     
     this.destruct = function(container){
-        container.removeChild(this.graphic);
-        this.graphic=null;
+        var moveTween = createjs.Tween.get(this.graphic,{loop:false})
+                .to({y:this.pos.y-this.dim.y*0.40, scaleY:this.dim.y/96},100,createjs.Ease.linear)
+                .to({y:this.pos.y+this.dim.y, scaleY:0.2},100,createjs.Ease.linear)
+                .call(this.reallydestruct);
+    };
+    var yahrgh = this;
+    this.reallydestruct = function(){
+        GameStates.Game.container.removeChild(yahrgh.graphic);
+        yahrgh.graphic=null;
     };
     
     this.age = function(newAge){
         this.graphic.scaleX = (this.dim.x/128)*(newAge/this.lifespan);
         this.graphic.scaleY = (this.dim.y/128)*(newAge/this.lifespan);
         this.offset = (this.dim.x/2)*(1-(newAge/this.lifespan));
+        this.graphic.x += this.offset;
+        this.graphic.y += this.offset;
     };
 }
 
@@ -1868,10 +1879,12 @@ function Level(title,world,turns,goalamount,gameSize,numStatic){
             if(this.game.itemQ(0).type==ItemType.BlackHole){
                 if(this.game.HazardAt(flooredIndex)){
                     this.game.ApplyMove(flooredIndex,this.game.popFromQ(),queryInfo);
+                    createjs.Sound.play("kabang");
                 }
                 else if(queryInfo.alreadyOccupied||this.grid.hasStatic(flooredIndex)){                         
                     this.grid.clear(container,flooredIndex);
                     this.game.ApplyMove(flooredIndex,this.game.popFromQ(),queryInfo);
+                    createjs.Sound.play("kabang");
                 }
                 else{ this.game.popFromQ();}
             }
@@ -2019,7 +2032,7 @@ function initGameScene(container) {
     pauseButton.x = 75;
     pauseButton.y = 24;
     
-    levels[0] = new Level("Welcome", 1 , 15, 30, new Coord(3,3),0);
+    levels[0] = new Level("Welcome", 1 , 18, 30, new Coord(3,3),0);
     
     levels[1] = new Level("Shrubs", 1 , 30, 60, new Coord(5,5),6);
     
