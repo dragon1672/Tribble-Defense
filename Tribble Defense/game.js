@@ -1188,14 +1188,14 @@ var Game = (function() {
         this.itemQChangedEvent = new GameEvent();
         //function()
         this.populationChangedEvent = new GameEvent();
-        
+        var pinePickle = this;
         this.populationChangedEvent.addCallBack(function() {
-            var pop = this.getPopulation();
-            var diff = pop - this.stats._lastPop;
-            this.stats._lastPop = pop;
-            if(diff < 0) { this.stats.popGained -= diff; }
-            if(diff > 0) { this.stats.popGained += diff; }
-            this.stats.highestPop = Math.max(this.stats.highestPop,pop);
+            var pop = pinePickle.getPopulation();
+            var diff = pop - pinePickle.stats._lastPop;
+            pinePickle.stats._lastPop = pop;
+            if(diff < 0) { pinePickle.stats.popGained -= diff; }
+            if(diff > 0) { pinePickle.stats.popGained += diff; }
+            pinePickle.stats.highestPop = Math.max(pinePickle.stats.highestPop,pop);
         });
 
         //endregion
