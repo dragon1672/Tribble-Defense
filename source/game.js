@@ -1479,12 +1479,13 @@ var Game = (function() {
                 var changed = false;
                 while(!potato.cheats && item.getLevel() > 0 && cell.item.getLevel() > 0) {
                     item.decreaseLevel();
+                    item.decreaseLevel();
                     cell.item.decreaseLevel();
                     changed = true;
                 }
                 if(changed) {
                     var oldItem = cell.item;
-                    if(cell.item.getLevel() === 0) {
+                    if(cell.item.getLevel() <= 0) {
                         cell.item = null;
                     }
                     potato.itemChangedEvent.callAll(cell.pos,oldItem,cell.item);
