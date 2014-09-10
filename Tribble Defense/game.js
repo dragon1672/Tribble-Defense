@@ -223,7 +223,9 @@ var manifest = [
     {src:"audio/Fire.mp3", id:"fire"},
     {src:"audio/Creep.mp3", id:"creep"},
     {src:"audio/Wave.mp3", id:"wave"},
+    {src:"audio/ForJamie.mp3", id:"Friday"},
     {src:"images/stars.png", id:"Stars"},
+    {src:"images/Hazard/jamieBlock.png", id:"jamie"},
     {src:"images/Hazard/LightningBolt.png", id:"bolt"},
     {src:"images/Hazard/tsunamiBlock.png", id:"tsunami"},
     {src:"images/Hazard/mantisBlock.png", id:"mantis"},
@@ -1624,7 +1626,12 @@ function Agent(container,coords,pos,dim,type,lifespan){
     this.dim = dim;
     this.type = type;
     this.lifespan = lifespan;
-    this.graphic = allGraphic[type+hazardBuf].clone();
+    if(levels[currentLevel].game.cheats){
+        this.graphic = loadImage("jamie");
+    }
+    else{
+        this.graphic = allGraphic[type+hazardBuf].clone();
+    }
     this.graphic.x = this.pos.x;
     this.graphic.y = this.pos.y;
     this.graphic.scaleX = this.dim.x/128;
@@ -1808,7 +1815,6 @@ var leftBar;
 var stars = [];
 var victory;
 var paused = false;
-var jamie = false;
 
 function Level(title,world,turns,goalamount,gameSize,numStatic){
     this.world = world;
@@ -1884,6 +1890,17 @@ function Level(title,world,turns,goalamount,gameSize,numStatic){
         });
         this.game.hazardRemovedEvent.addCallBack(function(pos,hazard){
             pineapple.grid.removeHazard(container,hazard); 
+        });
+        this.game.itemLostLevels.addCallBack(function(pos,old,newitem,hazard){
+            var theType = pineapple.grid.agents.get(hazard).type;
+            if(theType===0){
+                if(pineapple.world==1)createjs.Sound.play("monster");
+                else createjs.Sound.play("creep");
+            }
+            else if(theType==1){
+                if(pineapple.world==1)createjs.Sound.play("fire");
+                else createjs.Sound.play("wave");
+            }
         });
         updateStars(0);
     };
@@ -2256,13 +2273,13 @@ var keyToggles = [];
 
 var cheat = new KeyStateManager('J');
 cheat.onClick = function() {
-    if(!jamie){
-        backgroundMusic.setSoundFromString("Failure",true);
-        jamie = true;
+    if(!levels[currentLevel].game.cheats){
+        backgroundMusic.setSoundFromString("Friday",true);
+        levels[currentLevel].game.cheats = true;
     }
     else{
         backgroundMusic.setSoundFromString("GamePlay",true);
-        jamie = false;   
+        levels[currentLevel].game.cheats = false;   
     }
 };
 
