@@ -72,8 +72,8 @@ var FPS = 30;
                 this.x = 0;
                 this.y = 0;
             } else if(y === undefined) {
-                this.x = y.x;
-                this.y = y.y;
+                this.x = x.x;
+                this.y = x.y;
             } else {
                 this.x = x;
                 this.y = y;
@@ -219,6 +219,10 @@ var manifest = [
     {src:"audio/Kaching.mp3", id:"kaching"},
     {src:"audio/KaBang.mp3", id:"kabang"},
     {src:"audio/Fizzle.mp3", id:"fizzle"},
+    {src:"audio/Monster.mp3", id:"monster"},
+    {src:"audio/Fire.mp3", id:"fire"},
+    {src:"audio/Creep.mp3", id:"creep"},
+    {src:"audio/Wave.mp3", id:"wave"},
     {src:"images/stars.png", id:"Stars"},
     {src:"images/Hazard/LightningBolt.png", id:"bolt"},
     {src:"images/Hazard/tsunamiBlock.png", id:"tsunami"},
@@ -1577,9 +1581,10 @@ function Square(pos,dim){
                 .to({y:this.pos.y-this.dim.y*0.40, scaleY:this.dim.y/96},100,createjs.Ease.linear)
                 .to({y:this.pos.y, scaleY:this.dim.y/128},100,createjs.Ease.linear);
             container.addChild(this.graphic);
+            this.misc = 1;
         }
         else if(this.graphic){
-            
+            this.misc = 0;
             createjs.Tween.get(this.graphic,{loop:false})
                 .to({y:this.pos.y-this.dim.y*0.40, scaleY:this.dim.y/96},100,createjs.Ease.linear)
                 .to({y:this.pos.y+this.dim.y, scaleY:0.2},100,createjs.Ease.linear)
@@ -1746,6 +1751,14 @@ function Grid(container, cells, pos, dim){
             container.addChild(val.graphic);
         });
     };
+    this.anyOpen = function(){
+        for(var i=0; i<cells.x; i++){
+            for(var j=0; j<cells.y; j++){
+                if(this.squares[i][j].misc===0)return true;
+            }
+        }
+        return false;
+    };
 }
 
 function refresher(){
@@ -1855,7 +1868,12 @@ function Level(title,world,turns,goalamount,gameSize,numStatic){
             score = popul;
         });
         this.game.itemChangedEvent.addCallBack(function(pos,oldItem,newItem){
-            if(newItem!==null){pineapple.grid.placeElement(container,pos,newItem.getLevel());}
+            if(newItem!==null){
+                var level = newItem.getLevel();
+                if(level>5)level=5;
+                if(level<1)level=1;
+                pineapple.grid.placeElement(container,pos,level);
+            }
             else {pineapple.grid.clear(container,pos);}
         });
         this.game.hazardSpawnedEvent.addCallBack(function(pos,hazard){
@@ -1927,11 +1945,12 @@ function Level(title,world,turns,goalamount,gameSize,numStatic){
                 }
                 
             }
-            else if(!queryInfo.alreadyOccupied&&!this.grid.hasStatic(flooredIndex)){
+            else if(this.grid.getHazardType(flooredIndex)==-1){
                 this.game.ApplyMove(flooredIndex,this.game.popFromQ(),queryInfo);
                 if(queryInfo.cells.length>1) createjs.Sound.play("kaching");
                 else createjs.Sound.play("tick");
             }
+            if(!this.grid.anyOpen())this.game.turns=0;
         }   
     };
     
@@ -2035,7 +2054,7 @@ function initGameScene(container) {
     pop.y = 100;
     
     goal = new createjs.Text("", "24px Quantico", "#FFF");
-    goal.x = 680;
+    goal.x = 700;
     goal.y = 100; 
     
     titleText = new createjs.Text("", "24px Quantico", "#FFF");
