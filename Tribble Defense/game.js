@@ -1159,7 +1159,14 @@ var Game = (function() {
 
         this.spawners = [];
         this.trackedHazards = new HashSet();
-
+        
+        this.stats = {
+            popGained: 0,
+            popLost: 0,
+            highestPop: 0,
+            totalThingsKilled: 0,
+            _lastPop: 0,
+        };
         
         this.cheats = false;
         
@@ -1181,6 +1188,15 @@ var Game = (function() {
         this.itemQChangedEvent = new GameEvent();
         //function()
         this.populationChangedEvent = new GameEvent();
+        
+        this.populationChangedEvent.addCallBack(function() {
+            var pop = this.getPopulation();
+            var diff = pop - this.stats._lastPop;
+            this.stats._lastPop = pop;
+            if(diff < 0) { this.stats.popGained -= diff; }
+            if(diff > 0) { this.stats.popGained += diff; }
+            this.stats.highestPop = Math.max(this.stats.highestPop,pop);
+        });
 
         //endregion
 
@@ -1424,6 +1440,25 @@ var Game = (function() {
     };
     Game.prototype.HazardAt = function(x,y) {
         return this.getHazardAt(x,y).length > 0;
+    };
+    Game.prototype.AllObjectsAt = function(x,y) {
+        var pos = y === undefined ? x : new Coord(x,y);
+        var ret = [];
+        this.trackedHazards.foreachInSet(function(item) {
+            if(item.pos.isEqual(pos)) {
+                ret.push(item);
+            }
+        });
+        this.spawners.map(function(item) {
+            if(item.pos.isEqual(pos)) {
+                ret.push(item);
+            }
+        });
+        var cell = this.getCell(x,y);
+        if(cell !== null && cell.item !== null) {
+            ret.push(cell.item);
+        }
+        return ret;
     };
     
     Game.prototype.update = function() {
