@@ -1815,6 +1815,7 @@ var leftBar;
 var stars = [];
 var victory;
 var paused = false;
+var jamieText;
 
 function Level(title,world,turns,goalamount,gameSize,numStatic){
     this.world = world;
@@ -2078,6 +2079,10 @@ function initGameScene(container) {
     titleText.x = 250;
     titleText.y = 2;
     
+    jamieText = new createjs.Text("Jamie Mode Activated! Hazards are Harmless!", "24px Quantico", "#FFF");
+    jamieText.x = 20;
+    jamieText.y = 562;
+    
     pauseButton = CreateButtonFromSprite(spriteSheets.makeMiniButton(),"miniMenu",    function() { 
             paused = true;
             var subMenu = loadImage("pauseMenu");
@@ -2276,10 +2281,12 @@ cheat.onClick = function() {
     if(!levels[currentLevel].game.cheats){
         backgroundMusic.setSoundFromString("Friday",true);
         levels[currentLevel].game.cheats = true;
+        GameStates.Game.container.addChild(jamieText);
     }
     else{
         backgroundMusic.setSoundFromString("GamePlay",true);
-        levels[currentLevel].game.cheats = false;   
+        levels[currentLevel].game.cheats = false;  
+        GameStates.Game.container.removeChild(jamieText);
     }
 };
 
