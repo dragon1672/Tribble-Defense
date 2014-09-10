@@ -1,9 +1,0 @@
-diff a/Tribble Defense/GameStub.js b/Tribble Defense/GameStub.js	(rejected hunks)
-@@ -534,7 +534,6 @@
-                 preloadedQuery.alreadyOccupied = thisCell.item !== null;
-                 thisCell.item = null;
-                 var hazards = this.getHazardAt(pos);
--                var potato = this;
-                 hazards.map(function(item) {
-                     potato.hazardRemovedEvent.callAll(item.pos,item);
-                     potato.removeHazard(item);
