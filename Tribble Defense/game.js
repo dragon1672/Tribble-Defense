@@ -422,6 +422,9 @@ function initSprites() {
         miniBackUp:   [9, 9,   "miniBackUp"],
         miniBackOver: [10, 10, "miniBackOver"],
         miniBackDown: [11, 11, "miniBackDown"],
+        miniRetryUp:   [12, 12,   "miniRetryUp"],
+        miniRetryOver: [13, 13, "miniRetryOver"],
+        miniRetryDown: [14, 14, "miniRetryDown"],
         } 
     });
     spriteSheets.miniButtons = miniButtonSheet;
@@ -1757,6 +1760,7 @@ var leftBar;
 var stars = [];
 var victory;
 var paused = false;
+var jamie = false;
 
 function Level(title,world,turns,goalamount,gameSize,numStatic){
     this.world = world;
@@ -2035,19 +2039,32 @@ function initGameScene(container) {
             }));
             mbtn[1].x=400;
             mbtn[1].y=400;
+            mbtn.push(CreateButtonFromSprite(spriteSheets.makeMiniButton(),"miniRetry",    function() {
+                paused = false;
+                createjs.Sound.play("tick");
+                mbtn.map(function(item) {
+                    container.removeChild(item);
+                });
+                container.removeChild(subMenu);
+                container.removeChild(pausedText);
+                GameStates.Game.disable();
+                GameStates.Game.enable();
+            }));
+            mbtn[2].x=400;
+            mbtn[2].y=300;
             mbtn.map(function(item) {
                 container.addChild(item);
             });
             createjs.Sound.play("tick");
         });
     pauseButton.x = 75;
-    pauseButton.y = 24;
+    pauseButton.y = 22;
     
-    levels[0] = new Level("Welcome", 1 , 18, 30, new Coord(3,3),0);
+    levels[0] = new Level("Meet the Tribbles", 1 , 18, 30, new Coord(3,3),0);
     
-    levels[1] = new Level("Shrubs", 1 , 30, 60, new Coord(4,4),5);
+    levels[1] = new Level("Annoying Neighbors", 1 , 30, 60, new Coord(4,4),5);
     
-    levels[2] = new Level("Hazards", 2 , 50, 80, new Coord(5,5),0);
+    levels[2] = new Level("Copyright Infringement", 2 , 50, 80, new Coord(5,5),0);
     levels[2].setSpawners = function(){
         var toAdd = new Spawner(5,8,2,3);
         toAdd.pos = new Coord(2,2);
@@ -2060,7 +2077,7 @@ function initGameScene(container) {
         }
         levels[2].game.addSpawner(toAdd);
     };
-    levels[3] = new Level("Challenge", 1 , 45, 80, new Coord(5,5),4);
+    levels[3] = new Level("A Real Game", 1 , 45, 80, new Coord(5,5),4);
     levels[3].setSpawners = function(){
         var toAdd = new Spawner(5,8,5,7);
         toAdd.pos = new Coord(1,4);
@@ -2185,7 +2202,14 @@ var keyToggles = [];
 
 var cheat = new KeyStateManager('J');
 cheat.onClick = function() {
-    //do what you want here
+    if(!jamie){
+        backgroundMusic.setSoundFromString("Failure",true);
+        jamie = true;
+    }
+    else{
+        backgroundMusic.setSoundFromString("GamePlay",true);
+        jamie = false;   
+    }
 };
 
 keyToggles.push(cheat);
